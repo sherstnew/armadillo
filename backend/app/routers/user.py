@@ -42,49 +42,49 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
 # from system.py--->
 
 
-@router.patch(
-    '/',
-    description={
-        'change user'
-    },
-    responses={
-        401: {
-            "description": "Unauthorised. You are not authorised to change user"
-        }
-    }
-)
-async def change_user(user: UserSchema):
-    userdata = await User.find_one(User.email == user.email)
+# @router.patch(
+#     '/',
+#     description={
+#         'change user'
+#     },
+#     responses={
+#         401: {
+#             "description": "Unauthorised. You are not authorised to change user"
+#         }
+#     }
+# )
+# async def change_user(user: UserSchema):
+#     userdata = await User.find_one(User.email == user.email)
 
-    if not userdata:
-        raise HTTPException(stuseatus_code=404, detail="User not found")
+#     if not userdata:
+#         raise HTTPException(stuseatus_code=404, detail="User not found")
 
-    userdata.role = request.new_role
-    userdata.age = request.new_age
-    userdata.gender = request.new_gender
+#     userdata.role = request.new_role
+#     userdata.age = request.new_age
+#     userdata.gender = request.new_gender
 
-    await userdata.save()
-    return userdata
+#     await userdata.save()
+#     return userdata
 
 
-@router.delete(
-    '/',
-    description={
-        'delete user'
-    },
-    responses={
-        401: {
-            "description": "Unauthorised. You are not authorised to delete user"
-        }
-    }
-)
-async def annigilation_of_user(user: UserSchema):
-    userdel = await User.find_one(User.email == user.email)
-    if not userdel:
-        raise HTTPException(status_code=404, detail="User not found")
+# @router.delete(
+#     '/',
+#     description={
+#         'delete user'
+#     },
+#     responses={
+#         401: {
+#             "description": "Unauthorised. You are not authorised to delete user"
+#         }
+#     }
+# )
+# async def annigilation_of_user(user: UserSchema):
+#     userdel = await User.find_one(User.email == user.email)
+#     if not userdel:
+#         raise HTTPException(status_code=404, detail="User not found")
 
-    await userdel.delete()
-    return 200
+#     await userdel.delete()
+#     return 200
 
 
 @router.get(
