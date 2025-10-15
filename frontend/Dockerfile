@@ -3,11 +3,10 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Копируем файлы зависимостей
+# Копируем package.json
 COPY package*.json ./
-COPY yarn.lock* ./
 
-# Устанавливаем ВСЕ зависимости (включая devDependencies) для сборки
+# Устанавливаем все зависимости для сборки
 RUN npm ci
 
 # Копируем исходный код
@@ -21,27 +20,23 @@ FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Устанавливаем только TypeScript для runtime (если нужен для next.config.ts)
-RUN npm install -g typescript
+ENV NODE_ENV production
+ENV PORT 3000
 
-# Создаем пользователя для безопасности
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Устанавливаем зависимости включая TypeScript
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
 
-# Копируем собранное приложение из builder stage
+# Копируем собранное приложение
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/next.config.js ./
+COPY --from=builder /app/package.json ./
 
-# Копируем package.json для TypeScript (если нужен)
-COPY --from=builder /app/package.json ./package.json
-
-USER nextjs
+# Если используете standalone mode, раскомментируйте:
+# COPY --from=builder /app/.next/standalone ./
+# COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-ENV NODE_ENV "production"
-
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
