@@ -93,7 +93,7 @@ export function ProfileForm() {
 
   return (
     <div className="space-y-6 p-4 md:p-0">
-      <Card>
+      <Card className="py-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <User className="h-5 w-5" />
@@ -251,9 +251,9 @@ export function ProfileForm() {
             {isEditing ? (
               <Select
                 value={formData.role}
-                onValueChange={(value: "student" | "teacher" | "admin") =>
-                  setFormData((prev) => ({ ...prev, role: value }))
-                }
+                onValueChange={(
+                  value: "student" | "retraining" | "teacher" | "management"
+                ) => setFormData((prev) => ({ ...prev, role: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -261,7 +261,8 @@ export function ProfileForm() {
                 <SelectContent>
                   <SelectItem value="student">Студент</SelectItem>
                   <SelectItem value="teacher">Преподаватель</SelectItem>
-                  <SelectItem value="admin">Администратор</SelectItem>
+                  <SelectItem value="retraining">Специалист</SelectItem>
+                  <SelectItem value="management">Управляющий</SelectItem>
                 </SelectContent>
               </Select>
             ) : (
@@ -271,12 +272,14 @@ export function ProfileForm() {
                   ? "Студент"
                   : user.role === "teacher"
                   ? "Преподаватель"
-                  : "Администратор"}
+                  : user.role === "retraining"
+                  ? "Специалист"
+                  : "Управляющий"}
               </div>
             )}
           </div>
 
-          {(user.role === "teacher" || user.role === "admin") && (
+          {(user.role === "teacher" || user.role === "management") && (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Кафедра/Отдел</label>
@@ -323,12 +326,12 @@ export function ProfileForm() {
             </>
           )}
 
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <label className="text-sm font-medium">Дата регистрации</label>
             <div className="p-2 border rounded-md bg-muted/50">
               {new Date(user.createdAt).toLocaleDateString("ru-RU")}
             </div>
-          </div>
+          </div> */}
 
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
             {isEditing ? (
@@ -360,7 +363,7 @@ export function ProfileForm() {
         </CardContent>
       </Card>
 
-      <Card className="border-destructive/50">
+      <Card className="border-destructive/50 py-8">
         <CardHeader>
           <CardTitle className="text-destructive text-lg md:text-xl">
             Опасная зона

@@ -28,6 +28,7 @@ import {
   Phone,
   Calendar,
   Building,
+  ArrowLeft,
 } from "lucide-react";
 
 interface OnboardingStepProps {
@@ -76,7 +77,7 @@ export function AuthForm() {
     password: "",
     first_name: "",
     last_name: "",
-    role: "student" as "student" | "teacher" | "admin",
+    role: "student" as "student" | "retraining" | "teacher" | "management",
     gender: "male" as "male" | "female" | "other",
     age: 18,
     phone: "",
@@ -86,19 +87,28 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
-        await login({ email: formData.email, password: formData.password });
-      } else {
-        await register(formData);
-      }
+      await login({ email: formData.email, password: formData.password });
     } catch (error) {
       console.error("Auth error:", error);
       alert(error instanceof Error ? error.message : "Ошибка авторизации");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async () => {
+    setLoading(true);
+
+    try {
+      await register(formData);
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert(error instanceof Error ? error.message : "Ошибка при регистрации");
     } finally {
       setLoading(false);
     }
@@ -112,7 +122,12 @@ export function AuthForm() {
   };
 
   const nextStep = () => {
-    setOnboardingStep((prev) => prev + 1);
+    if (onboardingStep < onboardingSteps.length - 1) {
+      setOnboardingStep((prev) => prev + 1);
+    } else {
+      // На последнем шаге выполняем регистрацию
+      handleRegisterSubmit();
+    }
   };
 
   const prevStep = () => {
@@ -250,7 +265,7 @@ export function AuthForm() {
               <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Select
                 value={formData.role}
-                onValueChange={(value: "student" | "teacher" | "admin") =>
+                onValueChange={(value: "student" | "retraining" | "teacher" | "management") =>
                   setFormData((prev) => ({ ...prev, role: value }))
                 }
               >
@@ -260,13 +275,14 @@ export function AuthForm() {
                 <SelectContent>
                   <SelectItem value="student">Студент</SelectItem>
                   <SelectItem value="teacher">Преподаватель</SelectItem>
-                  <SelectItem value="admin">Администратор</SelectItem>
+                  <SelectItem value="retraining">Специалист</SelectItem>
+                  <SelectItem value="management">Управляющий</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {(formData.role === "teacher" || formData.role === "admin") && (
+          {(formData.role === "teacher") && (
             <>
               <div className="space-y-2">
                 <div className="relative">
@@ -297,8 +313,10 @@ export function AuthForm() {
   ];
 
   if (!isLogin && onboardingStep < onboardingSteps.length) {
+    const isLastStep = onboardingStep === onboardingSteps.length - 1;
+
     return (
-      <Card className="w-full max-w-md border shadow-xl">
+      <Card className="w-full max-w-md border shadow-xl py-8">
         <CardHeader className="text-center pb-4">
           <div className="flex justify-center mb-4">
             <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10">
@@ -307,45 +325,44 @@ export function AuthForm() {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
-            <OnboardingStep
-              currentStep={onboardingStep}
-              totalSteps={onboardingSteps.length}
-              title={onboardingSteps[onboardingStep].title}
-              description={onboardingSteps[onboardingStep].description}
-            >
-              {onboardingSteps[onboardingStep].content}
+          <OnboardingStep
+            currentStep={onboardingStep}
+            totalSteps={onboardingSteps.length}
+            title={onboardingSteps[onboardingStep].title}
+            description={onboardingSteps[onboardingStep].description}
+          >
+            {onboardingSteps[onboardingStep].content}
 
-              <div className="flex gap-2 pt-4">
-                {onboardingStep > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={prevStep}
-                    className="flex-1"
-                  >
-                    Назад
-                  </Button>
-                )}
-                {onboardingStep < onboardingSteps.length - 1 ? (
-                  <Button type="button" onClick={nextStep} className="flex-1">
-                    Продолжить
-                  </Button>
+            <div className="flex gap-2 pt-4">
+              {onboardingStep > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  className="flex-1 flex items-center gap-2"
+                  disabled={loading}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Назад
+                </Button>
+              )}
+              <Button 
+                type="button" 
+                onClick={nextStep} 
+                className="flex-1"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    {isLastStep ? 'Регистрация...' : 'Загрузка...'}
+                  </div>
                 ) : (
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Регистрация...
-                      </div>
-                    ) : (
-                      "Зарегистрироваться"
-                    )}
-                  </Button>
+                  isLastStep ? 'Зарегистрироваться' : 'Продолжить'
                 )}
-              </div>
-            </OnboardingStep>
-          </form>
+              </Button>
+            </div>
+          </OnboardingStep>
 
           <div className="mt-6 text-center text-sm">
             Уже есть аккаунт?{" "}
@@ -366,7 +383,7 @@ export function AuthForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border shadow-xl">
+    <Card className="w-full max-w-md border shadow-xl py-8">
       <CardHeader className="text-center pb-4">
         <div className="flex justify-center mb-4">
           <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10">
@@ -387,7 +404,7 @@ export function AuthForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={isLogin ? handleLoginSubmit : (e) => { e.preventDefault(); setOnboardingStep(0); }} className="space-y-4">
           <div className="space-y-2">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -422,7 +439,7 @@ export function AuthForm() {
             {loading ? (
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {isLogin ? "Вход..." : "Регистрация..."}
+                {isLogin ? "Вход..." : "Подготовка..."}
               </div>
             ) : isLogin ? (
               "Войти в систему"

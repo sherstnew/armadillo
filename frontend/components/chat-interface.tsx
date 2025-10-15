@@ -85,11 +85,11 @@ function ChatMessage({ message }: ChatMessageProps) {
 
   const getButtonStyles = () => {
     if (isLoading) {
-      return "bg-blue-500 text-white border-blue-500 hover:bg-blue-600";
+      return "bg-primary/50 text-white hover:bg-blue-600";
     } else if (isCurrentMessagePlaying) {
-      return "bg-white text-gray-900 border-gray-300 hover:bg-gray-100 shadow-md";
+      return "bg-white text-gray-900 hover:bg-gray-100";
     } else {
-      return "bg-gray-900 text-white border-gray-900 hover:bg-gray-800 shadow-md";
+      return "bg-primary text-white hover:bg-primary/80";
     }
   };
 
@@ -116,7 +116,7 @@ function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={`max-w-[85%] md:max-w-[70%] rounded-lg px-3 py-2 md:px-4 md:py-3 ${
           message.sender === "user"
-            ? "bg-primary text-primary-foreground"
+            ? "bg-primary/70 text-primary-foreground"
             : "bg-muted"
         }`}
       >
@@ -126,7 +126,7 @@ function ChatMessage({ message }: ChatMessageProps) {
               {message.content}
             </p>
             <div
-              className={`flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 md:gap-2 mt-1 md:mt-2 text-xs ${
+              className={`flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 md:gap-2 mt-2 md:mt-3 text-xs ${
                 message.sender === "user"
                   ? "text-primary-foreground/70"
                   : "text-muted-foreground"
@@ -137,13 +137,13 @@ function ChatMessage({ message }: ChatMessageProps) {
                 <div className="flex-shrink-0">
                   <Button
                     size="sm"
-                    className={`h-7 md:h-9 px-2 md:px-3 rounded-full transition-all duration-200 border-2 text-xs md:text-sm ${getButtonStyles()}`}
+                    className={`h-9 md:h-10 px-2 md:px-3 rounded-full transition-all duration-200 border-2 text-xs md:text-sm ${getButtonStyles()}`}
                     onClick={handlePlayPause}
                     disabled={message.content.length === 0 || isLoading}
                     title={getButtonTooltip()}
                   >
                     {getButtonIcon()}
-                    <span className="ml-1 md:ml-2">Озвучить</span>
+                    <span className="ml-1 md:ml-2">Прослушать</span>
                   </Button>
                 </div>
               )}
@@ -236,7 +236,7 @@ export function ChatInterface() {
         </div>
 
         <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t bg-muted/30">
-          <div className="flex gap-2">
+          <div className="flex gap-4">
             <Input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
@@ -251,13 +251,13 @@ export function ChatInterface() {
             <Button
               type="submit"
               size="sm"
-              className="h-10 md:h-12 px-3 md:px-6 bg-primary hover:bg-primary/90 transition-all duration-200"
+              className="h-10 w-13 md:h-12 px-3 md:px-6 bg-primary hover:bg-primary/90 transition-all duration-200"
               disabled={!inputMessage.trim() || !isConnected || isConnecting}
             >
               {isConnecting ? (
-                <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                <Loader2 className="h-5 w-5 md:h-5 md:w-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4 md:h-5 md:w-5" />
+                <Send className="h-5 w-5 md:h-5 md:w-5" />
               )}
             </Button>
           </div>

@@ -32,7 +32,6 @@ export function Navigation() {
             <Train className="h-6 w-6 md:h-7 md:w-7 text-primary" />
             <div className="hidden sm:block">
               <div className="text-sm md:text-lg font-bold">Ассистент КУ</div>
-              <div className="text-xs text-muted-foreground hidden md:block">Корпоративный университет</div>
             </div>
           </Link>
           
