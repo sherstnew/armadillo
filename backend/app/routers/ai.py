@@ -1,6 +1,7 @@
 from gigachat import GigaChat
 from gigachat.models import Chat, Messages, MessagesRole
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, Depends
+from app.utils.security import get_current_user
 from app.utils.security import get_current_user_websocket
 from app import GIGA_KEY
 from app.utils import prompts
@@ -112,6 +113,22 @@ async def assistant(websocket: WebSocket) -> str:
         session_messages.append(user_message)
         session_messages.append(ai_message)
         await save_conversation(str(user.id), session_messages)
+        
+@router.delete(
+    '/',
+    description="delete history",
+    responses={
+        401: {
+            "description": "Unauthorised. You are not authorised to change user"
+        }
+    }
+)
+async def remove_history(get_current_user: User = Depends(get_current_user)):
+    history = await Conversation.find_one(Conversation.user_id == str(get_current_user.id))
+    if not history:
+        raise Error.HISTORY_NOT_FOUND
+    history.messages = [history.messages[-1]]
+    await history.save()
         
 
         

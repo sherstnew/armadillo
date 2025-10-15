@@ -18,4 +18,9 @@ class Error(Exception):
         detail="Incorrect login or password."
     )
     
+    HISTORY_NOT_FOUND = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="History not found."
+    )
+    
     
