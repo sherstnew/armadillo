@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/context/auth-context'
 import { TTSProvider } from '@/context/tts-context'
+import { ChatProvider } from '@/context/chat-context'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <TTSProvider>
-            {children}
+            <ChatProvider>
+              {children}
+            </ChatProvider>
           </TTSProvider>
         </AuthProvider>
       </body>
