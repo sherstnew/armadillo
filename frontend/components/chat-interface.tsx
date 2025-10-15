@@ -119,7 +119,7 @@ function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={`max-w-[85%] md:max-w-[70%] rounded-lg px-3 py-2 md:px-4 md:py-3 ${
           message.sender === "user"
-            ? "bg-primary/70 text-primary-foreground"
+            ? "bg-primary text-primary-foreground"
             : "bg-muted"
         }`}
       >
@@ -129,7 +129,7 @@ function ChatMessage({ message }: ChatMessageProps) {
               {message.content}
             </p>
             <div
-              className={`flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 md:gap-8 mt-2 md:mt-3 text-xs ${
+              className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 md:gap-8 mt-2 text-xs ${
                 message.sender === "user"
                   ? "text-primary-foreground/70"
                   : "text-muted-foreground"
@@ -269,7 +269,7 @@ export function ChatInterface() {
             </div>
           </CardHeader>
           <CardContent className="p-0 flex flex-col h-[calc(100%-80px)]">
-            <div className="flex-1 overflow-y-auto h-4/5">
+            <div className="flex-1 overflow-y-auto">
               {conversations.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
                   Нет сохраненных бесед
