@@ -2,15 +2,20 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { Message, ChatState } from '@/types/chat'
+import { Conversation, ChatMessage as ApiChatMessage } from '@/types/api'
 import { websocketService } from '@/lib/websocket-service'
 import { useAuth } from '@/context/auth-context'
+import { apiService } from '@/lib/api'
 
 interface ChatContextType extends ChatState {
   sendMessage: (content: string) => void
   connect: () => Promise<void>
   disconnect: () => void
   clearMessages: () => void
+  clearAllHistory: () => Promise<void>
   retryConnection: () => Promise<void>
+  loadHistory: () => Promise<void>
+  loadConversation: (conversationId: string) => Promise<void>
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -22,6 +27,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     isConnected: false,
     isConnecting: false,
     error: null,
+    conversations: [],
+    currentConversationId: null,
   })
 
   // Refs для предотвращения повторных подключений
@@ -29,30 +36,62 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isMounted = useRef(true)
 
-  // Восстановление сообщений из localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedMessages = localStorage.getItem('chat_messages')
-      if (savedMessages) {
-        try {
-          const messages = JSON.parse(savedMessages).map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }))
-          setChatState(prev => ({ ...prev, messages }))
-        } catch (error) {
-          console.error('Error restoring messages:', error)
-        }
-      }
-    }
-  }, [])
+  // Загрузка истории при аутентификации
+  const loadHistory = useCallback(async (): Promise<void> => {
+    if (!token) return
 
-  // Сохранение сообщений в localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && chatState.messages.length > 0) {
-      localStorage.setItem('chat_messages', JSON.stringify(chatState.messages))
+    try {
+      const history = await apiService.getHistory(token)
+      setChatState(prev => ({
+        ...prev,
+        conversations: history.conversations || []
+      }))
+    } catch (error) {
+      console.error('Error loading history:', error)
     }
-  }, [chatState.messages])
+  }, [token])
+
+  // Загрузка конкретной беседы
+  const loadConversation = useCallback(async (conversationId: string): Promise<void> => {
+    if (!token) return
+
+    try {
+      const conversation = await apiService.getConversation(token, conversationId)
+      const messages: Message[] = conversation.messages.map((msg: ApiChatMessage) => ({
+        id: `${conversationId}_${msg.timestamp || Date.now()}`,
+        content: msg.content,
+        sender: msg.role === 'user' ? 'user' : 'assistant',
+        timestamp: new Date(msg.timestamp || Date.now()),
+        conversationId: conversationId
+      }))
+
+      setChatState(prev => ({
+        ...prev,
+        messages,
+        currentConversationId: conversationId
+      }))
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+    }
+  }, [token])
+
+  // Очистка всей истории
+  const clearAllHistory = useCallback(async (): Promise<void> => {
+    if (!token) return
+
+    try {
+      await apiService.clearHistory(token)
+      setChatState(prev => ({
+        ...prev,
+        messages: [],
+        conversations: [],
+        currentConversationId: null
+      }))
+    } catch (error) {
+      console.error('Error clearing history:', error)
+      throw error
+    }
+  }, [token])
 
   const addMessage = useCallback((message: Message) => {
     setChatState(prev => ({
@@ -128,7 +167,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       content,
       sender: 'user',
       timestamp: new Date(),
-      status: 'sending'
+      status: 'sending',
+      conversationId: chatState.currentConversationId || undefined
     }
 
     addMessage(userMessage)
@@ -141,11 +181,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       updateMessageStatus(userMessage.id, 'error')
       setChatState(prev => ({ ...prev, error: 'Ошибка отправки сообщения' }))
     }
-  }, [chatState.isConnected, addMessage, updateMessageStatus])
+  }, [chatState.isConnected, chatState.currentConversationId, addMessage, updateMessageStatus])
 
   const clearMessages = useCallback((): void => {
-    setChatState(prev => ({ ...prev, messages: [] }))
-    localStorage.removeItem('chat_messages')
+    setChatState(prev => ({ 
+      ...prev, 
+      messages: [],
+      currentConversationId: null
+    }))
   }, [])
 
   const retryConnection = useCallback(async (): Promise<void> => {
@@ -234,7 +277,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (isMounted.current) {
           connect().catch(console.error)
         }
-      }, 3000)
+      }, 1000)
 
       return () => clearTimeout(timeout)
     } else {
@@ -247,6 +290,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       disconnect()
     }
   }, [isAuthenticated, token, connect, disconnect])
+
+  // Загрузка истории при аутентификации
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      loadHistory()
+    }
+  }, [isAuthenticated, token, loadHistory])
 
   // Приветственное сообщение
   useEffect(() => {
@@ -278,7 +328,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       connect,
       disconnect,
       clearMessages,
+      clearAllHistory,
       retryConnection,
+      loadHistory,
+      loadConversation,
     }}>
       {children}
     </ChatContext.Provider>

@@ -49,3 +49,20 @@ export interface UpdateProfileRequest {
   department?: string
   position?: string
 }
+
+export interface Conversation {
+  id: string
+  user_id: string
+  messages: ChatMessage[]
+  created_at: string
+}
+
+export interface ChatMessage {
+  role: 'user' | 'ai'
+  content: string
+  timestamp?: string
+}
+
+export interface HistoryResponse {
+  conversations: Conversation[]
+}

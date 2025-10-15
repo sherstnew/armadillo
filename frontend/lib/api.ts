@@ -6,6 +6,7 @@ import {
   UserProfile,
   UpdateProfileRequest,
 } from "@/types/api";
+import { Conversation, HistoryResponse } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -50,14 +51,14 @@ class ApiService {
     return this.request<RegisterResponse>("/user/create", {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
   }
 
   async getProfile(token: string): Promise<UserProfile> {
-    console.log(token)
+    console.log(token);
     return this.request<UserProfile>("/user/", {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -73,7 +74,7 @@ class ApiService {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
@@ -82,6 +83,33 @@ class ApiService {
   async deleteAccount(token: string): Promise<void> {
     return this.request<void>("/user/", {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+  async getHistory(token: string): Promise<HistoryResponse> {
+    return this.request<HistoryResponse>("/user/history", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async clearHistory(token: string): Promise<void> {
+    return this.request<void>("/user/history", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async getConversation(
+    token: string,
+    conversationId: string
+  ): Promise<Conversation> {
+    return this.request<Conversation>(`/user/history/${conversationId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
