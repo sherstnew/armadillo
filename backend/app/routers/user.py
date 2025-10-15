@@ -51,8 +51,8 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
         }
     }
 )
-async def change_user(user: schemas.UserSchema):
-    userdata = await User.find_one(User.email == user.email)
+async def change_user(request: schemas.UserSchema):
+    userdata = await User.find_one(User.email == request.email)
 
     if not userdata:
         raise HTTPException(stuseatus_code=404, detail="User not found")
