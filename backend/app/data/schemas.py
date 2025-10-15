@@ -1,5 +1,5 @@
 from enum import Enum
-
+from typing import Dict, List
 from pydantic import BaseModel
 
 
@@ -46,6 +46,10 @@ class UserRequest(BaseModel):
 
 class UserLogIn(BaseModel):
     user_token: str
+    
+class Conversation(BaseModel):
+    user_id: str
+    messages: List[Dict] = []
 
 
 class Token(BaseModel):

@@ -6,6 +6,7 @@ from app.utils.security import get_current_user_websocket
 from app import GIGA_KEY
 from app.utils import prompts
 from app.data.models import User, Conversation
+from app.data import schemas
 from app.utils.error import Error
 from typing import List, Dict
 from beanie import Link
@@ -130,5 +131,22 @@ async def remove_history(get_current_user: User = Depends(get_current_user)):
     history.messages = [history.messages[-1]]
     await history.save()
         
-
+@router.get(
+    '/',
+    description="get history",
+    responses={
+        401: {
+            "description": "Unauthorised. You are not authorised to change user"
+        }
+    }
+)
+async def get_conversation(get_current_user: User = Depends(get_current_user)) -> schemas.Conversation:
+    history = await Conversation.find_one(Conversation.user_id == str(get_current_user.id))
+    if not history:
+        raise Error.HISTORY_NOT_FOUND
+    
+    return schemas.Conversation(
+        user_id=history.user_id,
+        messages=history.messages
+    )
         
