@@ -1,7 +1,9 @@
 from beanie import Document, Link
 from pydantic import EmailStr, BaseModel, Field
+from uuid import UUID, uuid4
 
 class User(Document):
+    id: UUID = Field(alias="_id", json_schema_extra={"unique": True}, default_factory=uuid4)
     first_name: str
     last_name: str
     password: str
