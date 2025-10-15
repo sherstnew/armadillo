@@ -1,121 +1,185 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import { User, AuthState, LoginData, RegisterData } from '@/types/user'
+import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  User,
+  AuthState,
+  LoginData,
+  RegisterData,
+  UpdateUserData,
+} from "@/types/user";
+import { apiService } from "@/lib/api";
 
 interface AuthContextType extends AuthState {
-  login: (data: LoginData) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
-  logout: () => void
-  updateUser: (user: Partial<User>) => void
-  deleteAccount: () => Promise<void>
+  login: (data: LoginData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  updateUser: (user: Partial<User>) => void;
+  deleteAccount: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-  })
-
-  // Mock данные для демонстрации
-  const mockUser: User = {
-    id: '1',
-    email: 'demo@mtu.ru',
-    firstName: 'Иван',
-    lastName: 'Иванов',
-    role: 'student',
-    createdAt: new Date(),
-  }
+    token: null,
+  });
 
   useEffect(() => {
-    // Проверяем, есть ли сохраненная сессия
-    const savedUser = localStorage.getItem('user')
-    if (savedUser) {
-      setAuthState({
-        user: JSON.parse(savedUser),
-        isAuthenticated: true,
-      })
+    // Восстанавливаем сессию из localStorage
+    const savedToken = localStorage.getItem("auth_token");
+    const savedUser = localStorage.getItem("user");
+
+    if (savedToken && savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          token: savedToken,
+        });
+
+        // Валидируем токен, получая профиль
+        apiService.getProfile(savedToken).catch(() => {
+          // Если токен невалиден, очищаем
+          logout();
+        });
+      } catch (error) {
+        console.error("Error restoring auth state:", error);
+        logout();
+      }
     }
-  }, [])
+  }, []);
 
   const login = async (data: LoginData): Promise<void> => {
-    // Mock логика входа
-    if (data.email && data.password) {
+    try {
+      const response = await apiService.login({
+        username: data.email,
+        password: data.password,
+      });
+
+      // Получаем профиль пользователя
+      const profile = await apiService.getProfile(response.access_token);
+
+      const user: User = {
+        id: profile.id,
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        role: profile.role,
+        gender: profile.gender,
+        age: profile.age,
+        phone: profile.phone,
+        department: profile.department,
+        position: profile.position,
+        createdAt: new Date(profile.createdAt),
+        token: response.access_token,
+      };
+
       setAuthState({
-        user: mockUser,
+        user,
         isAuthenticated: true,
-      })
-      localStorage.setItem('user', JSON.stringify(mockUser))
-    } else {
-      throw new Error('Неверные учетные данные')
+        token: response.access_token,
+      });
+
+      // Сохраняем в localStorage
+      localStorage.setItem("auth_token", response.access_token);
+      localStorage.setItem("user", JSON.stringify(user));
+    } catch (error) {
+      console.error("Login error:", error);
+      throw new Error("Неверный email или пароль");
     }
-  }
+  };
 
   const register = async (data: RegisterData): Promise<void> => {
-    // Mock логика регистрации
-    const newUser: User = {
-      id: Date.now().toString(),
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      role: data.role,
-      createdAt: new Date(),
-    }
+    try {
+      const response = await apiService.register(data);
 
-    setAuthState({
-      user: newUser,
-      isAuthenticated: true,
-    })
-    localStorage.setItem('user', JSON.stringify(newUser))
-  }
+      // После регистрации автоматически логинимся
+      await login({
+        email: data.email,
+        password: data.password,
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw new Error(
+        "Ошибка при регистрации. Возможно, пользователь с таким email уже существует."
+      );
+    }
+  };
 
   const logout = (): void => {
     setAuthState({
       user: null,
       isAuthenticated: false,
-    })
-    localStorage.removeItem('user')
-  }
+      token: null,
+    });
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+  };
 
-  const updateUser = (updatedData: Partial<User>): void => {
-    if (authState.user) {
-      const updatedUser = { ...authState.user, ...updatedData }
-      setAuthState({
-        ...authState,
+  const updateUser = async (updatedData: UpdateUserData): Promise<void> => {
+    if (!authState.token || !authState.user) return;
+
+    try {
+      // Просто передаем данные для обновления, createdAt не включаем
+      const updatedProfile = await apiService.updateProfile(
+        authState.token,
+        updatedData
+      );
+
+      const updatedUser: User = {
+        ...authState.user,
+        ...updatedData,
+        createdAt: new Date(updatedProfile.createdAt),
+      };
+
+      setAuthState((prev) => ({
+        ...prev,
         user: updatedUser,
-      })
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      }));
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error("Update user error:", error);
+      throw new Error("Ошибка при обновлении профиля");
     }
-  }
+  };
 
   const deleteAccount = async (): Promise<void> => {
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-    })
-    localStorage.removeItem('user')
-  }
+    if (!authState.token) return;
+
+    try {
+      await apiService.deleteAccount(authState.token);
+      logout();
+    } catch (error) {
+      console.error("Delete account error:", error);
+      throw new Error("Ошибка при удалении аккаунта");
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{
-      ...authState,
-      login,
-      register,
-      logout,
-      updateUser,
-      deleteAccount,
-    }}>
+    <AuthContext.Provider
+      value={{
+        ...authState,
+        login,
+        register,
+        logout,
+        updateUser,
+        deleteAccount,
+      }}
+    >
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }

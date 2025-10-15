@@ -4,12 +4,31 @@ export interface User {
   firstName: string
   lastName: string
   role: 'student' | 'teacher' | 'admin'
+  gender: 'male' | 'female' | 'other'
+  age: number
+  phone?: string
+  department?: string
+  position?: string
   createdAt: Date
+  token?: string
+}
+
+export interface UpdateUserData {
+  firstName?: string
+  lastName?: string
+  email?: string
+  role?: 'student' | 'teacher' | 'admin'
+  gender?: 'male' | 'female' | 'other'
+  age?: number
+  phone?: string
+  department?: string
+  position?: string
 }
 
 export interface AuthState {
   user: User | null
   isAuthenticated: boolean
+  token: string | null
 }
 
 export interface LoginData {
@@ -23,4 +42,9 @@ export interface RegisterData {
   firstName: string
   lastName: string
   role: 'student' | 'teacher' | 'admin'
+  gender: 'male' | 'female' | 'other'
+  age: number
+  phone?: string
+  department?: string
+  position?: string
 }
