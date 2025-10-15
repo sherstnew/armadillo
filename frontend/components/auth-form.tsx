@@ -46,8 +46,8 @@ export function AuthForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     role: 'student' as 'student' | 'teacher' | 'admin',
     gender: 'male' as 'male' | 'female' | 'other',
     age: 18,
@@ -102,9 +102,9 @@ export function AuthForm() {
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  name="firstName"
+                  name="first_name"
                   placeholder="Имя"
-                  value={formData.firstName}
+                  value={formData.first_name}
                   onChange={handleChange}
                   required
                   className="pl-10"
@@ -113,9 +113,9 @@ export function AuthForm() {
             </div>
             <div className="space-y-2">
               <Input
-                name="lastName"
+                name="last_name"
                 placeholder="Фамилия"
-                value={formData.lastName}
+                value={formData.last_name}
                 onChange={handleChange}
                 required
               />

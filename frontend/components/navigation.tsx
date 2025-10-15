@@ -46,7 +46,7 @@ export function Navigation() {
                   <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium">{user.firstName} {user.lastName}</span>
+                  <span className="font-medium">{user.first_name} {user.last_name}</span>
                   <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
                 </div>
               </div>

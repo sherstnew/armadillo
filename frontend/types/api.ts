@@ -11,8 +11,8 @@ export interface LoginResponse {
 export interface RegisterRequest {
   email: string
   password: string
-  firstName: string
-  lastName: string
+  first_name: string
+  last_name: string
   role: 'student' | 'teacher' | 'admin'
   gender: 'male' | 'female' | 'other'
   age: number
@@ -28,8 +28,8 @@ export interface RegisterResponse {
 export interface UserProfile {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  first_name: string
+  last_name: string
   role: 'student' | 'teacher' | 'admin'
   gender: 'male' | 'female' | 'other'
   age: number
@@ -40,8 +40,8 @@ export interface UserProfile {
 }
 
 export interface UpdateProfileRequest {
-  firstName?: string
-  lastName?: string
+  first_name?: string
+  last_name?: string
   email?: string
   role?: 'student' | 'teacher' | 'admin'
   gender?: 'male' | 'female' | 'other'

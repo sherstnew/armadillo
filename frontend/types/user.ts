@@ -1,8 +1,8 @@
 export interface User {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  first_name: string
+  last_name: string
   role: 'student' | 'teacher' | 'admin'
   gender: 'male' | 'female' | 'other'
   age: number
@@ -14,8 +14,8 @@ export interface User {
 }
 
 export interface UpdateUserData {
-  firstName?: string
-  lastName?: string
+  first_name?: string
+  last_name?: string
   email?: string
   role?: 'student' | 'teacher' | 'admin'
   gender?: 'male' | 'female' | 'other'
@@ -39,8 +39,8 @@ export interface LoginData {
 export interface RegisterData {
   email: string
   password: string
-  firstName: string
-  lastName: string
+  first_name: string
+  last_name: string
   role: 'student' | 'teacher' | 'admin'
   gender: 'male' | 'female' | 'other'
   age: number

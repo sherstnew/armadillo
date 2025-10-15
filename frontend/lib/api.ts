@@ -54,7 +54,8 @@ class ApiService {
   }
 
   async getProfile(token: string): Promise<UserProfile> {
-    return this.request<UserProfile>("/user/profile", {
+    console.log(token)
+    return this.request<UserProfile>("/user/", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -65,8 +66,8 @@ class ApiService {
     token: string,
     data: UpdateProfileRequest
   ): Promise<UserProfile> {
-    return this.request<UserProfile>("/user/profile", {
-      method: "PUT",
+    return this.request<UserProfile>("/user/", {
+      method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -75,7 +76,7 @@ class ApiService {
   }
 
   async deleteAccount(token: string): Promise<void> {
-    return this.request<void>("/user/profile", {
+    return this.request<void>("/user/", {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

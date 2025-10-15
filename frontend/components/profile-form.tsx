@@ -36,8 +36,8 @@ export function ProfileForm() {
   const { user, updateUser, deleteAccount, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || "",
-    lastName: user?.lastName || "",
+    first_name: user?.first_name || "",
+    last_name: user?.last_name || "",
     email: user?.email || "",
     role: user?.role || "student",
     gender: user?.gender || "male",
@@ -65,8 +65,8 @@ export function ProfileForm() {
 
   const handleCancel = () => {
     setFormData({
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
       email: user?.email || "",
       role: user?.role || "student",
       gender: user?.gender || "male",
@@ -110,17 +110,17 @@ export function ProfileForm() {
               <label className="text-sm font-medium">Имя</label>
               {isEditing ? (
                 <Input
-                  value={formData.firstName}
+                  value={formData.first_name}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      firstName: e.target.value,
+                      first_name: e.target.value,
                     }))
                   }
                 />
               ) : (
                 <div className="p-2 border rounded-md bg-muted/50">
-                  {user.firstName}
+                  {user.first_name}
                 </div>
               )}
             </div>
@@ -129,17 +129,17 @@ export function ProfileForm() {
               <label className="text-sm font-medium">Фамилия</label>
               {isEditing ? (
                 <Input
-                  value={formData.lastName}
+                  value={formData.last_name}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      lastName: e.target.value,
+                      last_name: e.target.value,
                     }))
                   }
                 />
               ) : (
                 <div className="p-2 border rounded-md bg-muted/50">
-                  {user.lastName}
+                  {user.last_name}
                 </div>
               )}
             </div>
