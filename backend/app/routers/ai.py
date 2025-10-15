@@ -4,8 +4,10 @@ from fastapi import APIRouter, WebSocket
 from app.utils.security import get_current_user_websocket
 from app import GIGA_KEY
 from app.utils import prompts
-from app.data.models import User
+from app.data.models import User, Conversation
 from app.utils.error import Error
+from typing import List, Dict
+from beanie import Link
 import uuid
 import json
 
@@ -13,6 +15,23 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 
 ca_bundle_file = r"app/russian_trusted_root_ca_pem.crt"
 
+async def save_conversation(user_id: str, new_messages: List[Dict]):
+    conversation = await Conversation.find_one(Conversation.user_id == user_id)
+    if conversation:
+
+        conversation.messages.extend(new_messages)
+        await conversation.save()
+    else:
+        conversation = Conversation(
+            user_id=user_id,
+            messages=new_messages
+        )
+        await conversation.insert()
+    user = await User.find_one(User.id == uuid.UUID(user_id), fetch_links=True)
+    if not user.history:
+        user.history.append(conversation)
+        await user.save()
+            
 async def payloads(payload: str):
     if payload == "student":
         return Chat(
@@ -68,11 +87,23 @@ async def assistant(websocket: WebSocket) -> str:
         user = await User.find_one(User.id == current_user.id)
         if not user:
             raise Error.USER_NOT_FOUND
-        
+        user_message = {
+                "role": "user",
+                "content": data
+            }
         payload = await payloads(str(user.role.value))
         with GigaChat(credentials=GIGA_KEY, ca_bundle_file=ca_bundle_file, verify_ssl_certs=False) as giga:
             payload.messages.append(Messages(role=MessagesRole.USER, content=data))
             response = giga.chat(payload)
             payload.messages.append(response.choices[0].message)
+            ai_message = {
+                "role": "ai",
+                "content": response.choices[0].message.content
+            }
         await websocket.send_text(response.choices[0].message.content)
+
+        session_messages = []
+        session_messages.append(user_message)
+        session_messages.append(ai_message)
+        await save_conversation(str(user.id), session_messages)
         

@@ -39,9 +39,6 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
     return schemas.Token(access_token=token, token_type="bearer")
 
 
-# from system.py--->
-
-
 @router.patch(
     '/',
     description="change user",
@@ -51,7 +48,7 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
         }
     }
 )
-async def change_user(request: schemas.UserSchema, get_current_user: User = Depends(get_current_user)):
+async def change_user(request: schemas.UserUpdate, get_current_user: User = Depends(get_current_user)):
     userdata = await User.find_one(User.email == request.email)
 
     if not userdata:
@@ -74,8 +71,8 @@ async def change_user(request: schemas.UserSchema, get_current_user: User = Depe
         }
     }
 )
-async def annigilation_of_user(user: schemas.UserSchema, get_current_user: User = Depends(get_current_user)):
-    userdel = await User.find_one(User.email == user.email)
+async def annigilation_of_user(get_current_user: User = Depends(get_current_user)):
+    userdel = await User.find_one(User.email == get_current_user.email)
     if not userdel:
         raise HTTPException(status_code=404, detail="User not found")
 

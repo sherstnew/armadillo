@@ -23,7 +23,8 @@ async def create_user(request: schemas.UserSchema):
         email=request.email,
         role=request.role,
         age=request.age,
-        gender = request.gender
+        gender = request.gender,
+        history=[]
     )
     
     await user.create()
