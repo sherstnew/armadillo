@@ -44,16 +44,14 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
 
 @router.patch(
     '/',
-    description={
-        'change user'
-    },
+    description="change user",
     responses={
         401: {
             "description": "Unauthorised. You are not authorised to change user"
         }
     }
 )
-async def change_user(user: UserSchema):
+async def change_user(user: schemas.UserSchema):
     userdata = await User.find_one(User.email == user.email)
 
     if not userdata:
@@ -69,16 +67,14 @@ async def change_user(user: UserSchema):
 
 @router.delete(
     '/',
-    description={
-        'delete user'
-    },
+    description="delete user",
     responses={
         401: {
             "description": "Unauthorised. You are not authorised to delete user"
         }
     }
 )
-async def annigilation_of_user(user: UserSchema):
+async def annigilation_of_user(user: schemas.UserSchema):
     userdel = await User.find_one(User.email == user.email)
     if not userdel:
         raise HTTPException(status_code=404, detail="User not found")
@@ -89,9 +85,7 @@ async def annigilation_of_user(user: UserSchema):
 
 @router.get(
     '/',
-    description={
-        'get user'
-    },
+    description="get user",
     responses={
         401: {
             "description": "Unauthorised. You are not authorised to get user"
