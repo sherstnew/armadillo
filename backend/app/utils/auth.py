@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from app import ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY
 from app.utils.error import Error
+from app.routers.ai import save_conversation
 
 import jwt
 
@@ -26,8 +27,12 @@ async def create_user(request: schemas.UserSchema):
         gender = request.gender,
         history=[]
     )
-    
+    ai_message = [{
+            "role": "ai",
+            "content": "Привет, чем могу помочь?"
+        }]
     await user.create()
+    await save_conversation(str(user.id), ai_message)
     return user
     
 async def authenticate_user(data: dict, expires_delta):

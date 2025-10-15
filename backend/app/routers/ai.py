@@ -28,7 +28,7 @@ async def save_conversation(user_id: str, new_messages: List[Dict]):
         )
         await conversation.insert()
     user = await User.find_one(User.id == uuid.UUID(user_id), fetch_links=True)
-    if not user.history:
+    if not user or not user.history:
         user.history.append(conversation)
         await user.save()
             
@@ -83,10 +83,16 @@ async def assistant(websocket: WebSocket) -> str:
     await websocket.accept()
     current_user = await get_current_user_websocket(websocket.query_params.get("Authorization"))
     while True:
-        data = await websocket.receive_text()
         user = await User.find_one(User.id == current_user.id)
         if not user:
             raise Error.USER_NOT_FOUND
+        if not user.history:
+            ai_message = [{
+                    "role": "ai",
+                    "content": "Привет, чем могу помочь?"
+                }]
+            await save_conversation(str(user.id), ai_message)
+        data = await websocket.receive_text()
         user_message = {
                 "role": "user",
                 "content": data
@@ -106,4 +112,6 @@ async def assistant(websocket: WebSocket) -> str:
         session_messages.append(user_message)
         session_messages.append(ai_message)
         await save_conversation(str(user.id), session_messages)
+        
+
         
