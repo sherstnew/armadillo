@@ -1,15 +1,19 @@
 from beanie import Document, Link
 from pydantic import EmailStr, BaseModel, Field
 
+from app.data.schemas import Role, Gender
+
+
 class User(Document):
     first_name: str
     last_name: str
     password: str
     email: EmailStr
-    role: str
+    role: Role
     age: int
-    gender: str
-    
+    gender: Gender
+
+
 class SecretAdmin(Document):
     """
     SecretAdmin model representing an admin user with additional security attributes.
@@ -36,7 +40,7 @@ class AdminFront(Document):
     disabled: bool = Field(default=False)
     full_name: str = Field(default=None)
     secret: Link[SecretAdmin] = Field()
-    
+
 
 class Token(BaseModel):
     """
@@ -60,5 +64,9 @@ class TokenData(BaseModel):
     """
 
     username: str
+
+
+
+
 
 
