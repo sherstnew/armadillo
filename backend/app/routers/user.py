@@ -9,7 +9,7 @@ from app.data.models import User
 from app.data import schemas
 from app.utils.error import Error
 from app.utils.auth import create_user, authenticate_user
-from app.utils.security import verify_password
+from app.utils.security import verify_password, get_current_user
 
 from typing import Annotated
 
@@ -51,7 +51,7 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
         }
     }
 )
-async def change_user(request: schemas.UserSchema):
+async def change_user(request: schemas.UserSchema, get_current_user: User = Depends(get_current_user)):
     userdata = await User.find_one(User.email == request.email)
 
     if not userdata:
@@ -74,7 +74,7 @@ async def change_user(request: schemas.UserSchema):
         }
     }
 )
-async def annigilation_of_user(user: schemas.UserSchema):
+async def annigilation_of_user(user: schemas.UserSchema, get_current_user: User = Depends(get_current_user)):
     userdel = await User.find_one(User.email == user.email)
     if not userdel:
         raise HTTPException(status_code=404, detail="User not found")
@@ -92,8 +92,8 @@ async def annigilation_of_user(user: schemas.UserSchema):
         }
     }
 )
-async def get_user(UserMail: str):
-    userdata = await User.find_one(User.email == UserMail)
+async def get_user(get_current_user: User = Depends(get_current_user)):
+    userdata = await User.find_one(User.email == get_current_user.email)
     if not userdata:
         raise HTTPException(status_code=404, detail="User not found")
     return userdata
