@@ -5,28 +5,41 @@ class WebSocketService {
   private messageHandlers: ((message: Message) => void)[] = []
   private connectionHandlers: ((connected: boolean) => void)[] = []
   private errorHandlers: ((error: string) => void)[] = []
+  private connectionPromise: Promise<void> | null = null
 
   connect(token: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    // Если уже есть активное подключение, возвращаем существующий промис
+    if (this.connectionPromise) {
+      return this.connectionPromise
+    }
+
+    this.connectionPromise = new Promise((resolve, reject) => {
       if (this.socket?.readyState === WebSocket.OPEN) {
         resolve()
         return
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('https://', 'wss://').replace('http://', 'ws://')
-      const url = `${baseUrl}/ai?Authorization=${encodeURIComponent(token)}`
+      // Закрываем существующее соединение если есть
+      if (this.socket) {
+        this.socket.close()
+      }
 
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('https://', 'wss://').replace('http://', 'ws://')
+      const url = `${baseUrl}/ai/?Authorization=${encodeURIComponent(token)}`
+
+      console.log('🔌 Connecting to WebSocket...')
+      
       try {
         this.socket = new WebSocket(url)
 
         this.socket.onopen = () => {
-          console.log('🔌 WebSocket connected')
+          console.log('✅ WebSocket connected successfully')
           this.notifyConnectionHandlers(true)
           resolve()
         }
 
         this.socket.onmessage = (event) => {
-          console.log('📨 Received message:', event.data)
+          console.log('📨 Received message from assistant')
           const assistantMessage: Message = {
             id: Date.now().toString(),
             content: event.data,
@@ -46,6 +59,8 @@ class WebSocketService {
         this.socket.onclose = (event) => {
           console.log('🔌 WebSocket disconnected:', event.code, event.reason)
           this.notifyConnectionHandlers(false)
+          this.connectionPromise = null
+          
           if (event.code !== 1000) {
             this.notifyErrorHandlers('Соединение с ассистентом прервано')
           }
@@ -53,12 +68,18 @@ class WebSocketService {
 
       } catch (error) {
         console.error('❌ WebSocket connection failed:', error)
+        this.connectionPromise = null
         reject(error)
       }
     })
+
+    return this.connectionPromise
   }
 
   disconnect(): void {
+    console.log('🔌 Disconnecting WebSocket...')
+    this.connectionPromise = null
+    
     if (this.socket) {
       this.socket.close(1000, 'Normal closure')
       this.socket = null
@@ -67,6 +88,7 @@ class WebSocketService {
 
   sendMessage(content: string): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
+      console.log('📤 Sending message to assistant:', content.substring(0, 50) + '...')
       this.socket.send(content)
     } else {
       throw new Error('WebSocket is not connected')

@@ -327,7 +327,7 @@ export function ProfileForm() {
           <div className="space-y-2">
             <label className="text-sm font-medium">Дата регистрации</label>
             <div className="p-2 border rounded-md bg-muted/50">
-              {user.createdAt.toLocaleDateString("ru-RU")}
+              {new Date(user.createdAt).toLocaleDateString("ru-RU")}
             </div>
           </div>
 

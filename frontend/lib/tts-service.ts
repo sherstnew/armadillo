@@ -31,7 +31,7 @@ class TTSService {
     const now = Date.now()
     const bufferTime = 2 * 60 * 1000 // 2 минуты в миллисекундах
     
-    return now < (this.expiresAt - bufferTime)
+    return now < (this.expiresAt / 1000 - bufferTime)
   }
 
   private async refreshToken(): Promise<string> {

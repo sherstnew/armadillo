@@ -15,7 +15,7 @@ export function Navigation() {
           <Link href="/" className="flex items-center gap-3 font-semibold">
             <Train className="h-7 w-7 text-primary" />
             <div>
-              <div className="text-lg font-bold">МТУ ИИ-Ассистент</div>
+              <div className="text-lg font-bold">Ассистент КУ</div>
               <div className="text-xs text-muted-foreground">Московский транспорт</div>
             </div>
           </Link>

@@ -49,6 +49,9 @@ class ApiService {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     return this.request<RegisterResponse>("/user/create", {
       method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(data),
     });
   }
@@ -70,6 +73,7 @@ class ApiService {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(data),
     });

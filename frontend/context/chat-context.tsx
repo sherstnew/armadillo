@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { Message, ChatState } from '@/types/chat'
 import { websocketService } from '@/lib/websocket-service'
 import { useAuth } from '@/context/auth-context'
@@ -23,6 +23,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     isConnecting: false,
     error: null,
   })
+
+  // Refs для предотвращения повторных подключений
+  const connectionAttempted = useRef(false)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMounted = useRef(true)
 
   // Восстановление сообщений из localStorage
   useEffect(() => {
@@ -71,15 +76,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not authenticated')
     }
 
-    if (chatState.isConnected || chatState.isConnecting) {
+    // Предотвращаем множественные подключения
+    if (chatState.isConnected || chatState.isConnecting || connectionAttempted.current) {
+      console.log('🔄 Connection already in progress or established')
       return
     }
 
+    console.log('🔌 Starting WebSocket connection...')
+    connectionAttempted.current = true
     setChatState(prev => ({ ...prev, isConnecting: true, error: null }))
 
     try {
       await websocketService.connect(token)
+      console.log('✅ WebSocket connected successfully')
     } catch (error) {
+      console.error('❌ WebSocket connection failed:', error)
+      connectionAttempted.current = false
       setChatState(prev => ({
         ...prev,
         isConnecting: false,
@@ -90,6 +102,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [token, isAuthenticated, chatState.isConnected, chatState.isConnecting])
 
   const disconnect = useCallback((): void => {
+    console.log('🔌 Disconnecting WebSocket...')
+    connectionAttempted.current = false
     websocketService.disconnect()
     setChatState(prev => ({
       ...prev,
@@ -97,6 +111,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       isConnecting: false,
       error: null
     }))
+
+    // Очищаем таймаут переподключения
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+    }
   }, [])
 
   const sendMessage = useCallback((content: string): void => {
@@ -130,8 +149,30 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const retryConnection = useCallback(async (): Promise<void> => {
+    console.log('🔄 Manual reconnection attempt')
     await connect()
   }, [connect])
+
+  // Умное переподключение с экспоненциальной задержкой
+  const scheduleReconnect = useCallback(() => {
+    if (!isMounted.current || !isAuthenticated) return
+
+    // Очищаем предыдущий таймаут
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+    }
+
+    // Увеличиваем задержку с каждой попыткой (max 30 секунд)
+    const delay = Math.min(1000 * Math.pow(2, connectionAttempted.current ? 1 : 0), 30000)
+    
+    console.log(`🔄 Scheduling reconnect in ${delay}ms`)
+    
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (isMounted.current && isAuthenticated && !chatState.isConnected) {
+        connect().catch(console.error)
+      }
+    }, delay)
+  }, [isAuthenticated, chatState.isConnected, connect])
 
   // Подписка на события WebSocket
   useEffect(() => {
@@ -140,16 +181,35 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
 
     const handleConnectionChange = (connected: boolean) => {
+      console.log(`🔌 WebSocket connection changed: ${connected}`)
       setChatState(prev => ({
         ...prev,
         isConnected: connected,
         isConnecting: false,
         error: connected ? null : prev.error
       }))
+
+      if (connected) {
+        connectionAttempted.current = false
+        // Очищаем таймаут переподключения при успешном подключении
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+        }
+      } else if (isMounted.current && isAuthenticated) {
+        // Планируем переподключение только если пользователь аутентифицирован
+        connectionAttempted.current = false
+        scheduleReconnect()
+      }
     }
 
     const handleError = (error: string) => {
-      setChatState(prev => ({ ...prev, error, isConnecting: false }))
+      console.error('❌ WebSocket error:', error)
+      setChatState(prev => ({ 
+        ...prev, 
+        error, 
+        isConnecting: false 
+      }))
+      connectionAttempted.current = false
     }
 
     websocketService.onMessage(handleMessage)
@@ -161,24 +221,36 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       websocketService.removeConnectionHandler(handleConnectionChange)
       websocketService.removeErrorHandler(handleError)
     }
-  }, [addMessage])
+  }, [addMessage, isAuthenticated, scheduleReconnect])
 
-  // Автоподключение при аутентификации
+  // Управление подключением при изменении аутентификации
   useEffect(() => {
+    isMounted.current = true
+
     if (isAuthenticated && token) {
-      connect().catch(console.error)
+      console.log('👤 User authenticated, connecting WebSocket...')
+      // Небольшая задержка перед первым подключением
+      const timeout = setTimeout(() => {
+        if (isMounted.current) {
+          connect().catch(console.error)
+        }
+      }, 3000)
+
+      return () => clearTimeout(timeout)
     } else {
+      console.log('👤 User not authenticated, disconnecting WebSocket...')
       disconnect()
     }
 
     return () => {
+      isMounted.current = false
       disconnect()
     }
   }, [isAuthenticated, token, connect, disconnect])
 
   // Приветственное сообщение
   useEffect(() => {
-    if (chatState.messages.length === 0 && user) {
+    if (chatState.messages.length === 0 && user && chatState.isConnected) {
       const welcomeMessage: Message = {
         id: 'welcome',
         content: getWelcomeMessage(user.role),
@@ -187,7 +259,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }
       addMessage(welcomeMessage)
     }
-  }, [user, chatState.messages.length, addMessage])
+  }, [user, chatState.messages.length, chatState.isConnected, addMessage])
 
   const getWelcomeMessage = (role: string): string => {
     const messages = {
