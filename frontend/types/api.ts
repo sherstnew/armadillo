@@ -8,6 +8,9 @@ export interface LoginResponse {
   token_type: string
 }
 
+export interface RegisterResponse {
+  user_token: string
+} 
 export interface RegisterRequest {
   email: string
   password: string
@@ -19,10 +22,6 @@ export interface RegisterRequest {
   phone?: string
   department?: string
   position?: string
-}
-
-export interface RegisterResponse {
-  user_token: string
 }
 
 export interface UserProfile {

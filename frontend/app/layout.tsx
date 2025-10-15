@@ -8,8 +8,8 @@ import { ChatProvider } from '@/context/chat-context'
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
 export const metadata: Metadata = {
-  title: 'ИИ-Ассистент - Московский транспорт',
-  description: 'Корпоративный университет Московского транспорта',
+  title: 'Ассистент КУ - Корпоративный университет',
+  description: 'ИИ-ассистент Корпоративного университета Московского транспорта',
 }
 
 export default function RootLayout({
@@ -18,15 +18,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ru">
-      <body className={inter.className}>
-        <AuthProvider>
-          <TTSProvider>
-            <ChatProvider>
-              {children}
-            </ChatProvider>
-          </TTSProvider>
-        </AuthProvider>
+    <html lang="ru" className="h-full">
+      <body className={`${inter.className} h-full antialiased`}>
+        <div className="min-h-full flex flex-col">
+          <AuthProvider>
+            <TTSProvider>
+              <ChatProvider>
+                {children}
+              </ChatProvider>
+            </TTSProvider>
+          </AuthProvider>
+        </div>
       </body>
     </html>
   )

@@ -13,18 +13,6 @@ export interface User {
   token?: string
 }
 
-export interface UpdateUserData {
-  first_name?: string
-  last_name?: string
-  email?: string
-  role?: 'student' | 'teacher' | 'admin'
-  gender?: 'male' | 'female' | 'other'
-  age?: number
-  phone?: string
-  department?: string
-  position?: string
-}
-
 export interface AuthState {
   user: User | null
   isAuthenticated: boolean
@@ -44,6 +32,18 @@ export interface RegisterData {
   role: 'student' | 'teacher' | 'admin'
   gender: 'male' | 'female' | 'other'
   age: number
+  phone?: string
+  department?: string
+  position?: string
+}
+
+export interface UpdateUserData {
+  first_name?: string
+  last_name?: string
+  email?: string
+  role?: 'student' | 'teacher' | 'admin'
+  gender?: 'male' | 'female' | 'other'
+  age?: number
   phone?: string
   department?: string
   position?: string

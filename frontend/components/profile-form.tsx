@@ -30,7 +30,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { User, Mail, Phone, Calendar, Building, Briefcase } from "lucide-react";
-import { UpdateUserData } from '@/types/user';
 
 export function ProfileForm() {
   const { user, updateUser, deleteAccount, logout } = useAuth();
@@ -53,7 +52,7 @@ export function ProfileForm() {
 
     setLoading(true);
     try {
-      await updateUser(formData as UpdateUserData);
+      await updateUser(formData);
       setIsEditing(false);
     } catch (error) {
       console.error("Update error:", error);
@@ -93,19 +92,19 @@ export function ProfileForm() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-0">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <User className="h-5 w-5" />
             Профиль пользователя
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm md:text-base">
             Управление вашими личными данными и настройками аккаунта
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Имя</label>
               {isEditing ? (
@@ -119,7 +118,7 @@ export function ProfileForm() {
                   }
                 />
               ) : (
-                <div className="p-2 border rounded-md bg-muted/50">
+                <div className="p-2 border rounded-md bg-muted/50 text-sm md:text-base">
                   {user.first_name}
                 </div>
               )}
@@ -138,7 +137,7 @@ export function ProfileForm() {
                   }
                 />
               ) : (
-                <div className="p-2 border rounded-md bg-muted/50">
+                <div className="p-2 border rounded-md bg-muted/50 text-sm md:text-base">
                   {user.last_name}
                 </div>
               )}
@@ -331,18 +330,31 @@ export function ProfileForm() {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
             {isEditing ? (
               <>
-                <Button onClick={handleSave} disabled={loading}>
+                <Button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex-1"
+                >
                   {loading ? "Сохранение..." : "Сохранить"}
                 </Button>
-                <Button variant="outline" onClick={handleCancel}>
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  className="flex-1"
+                >
                   Отмена
                 </Button>
               </>
             ) : (
-              <Button onClick={() => setIsEditing(true)}>Редактировать</Button>
+              <Button
+                onClick={() => setIsEditing(true)}
+                className="w-full sm:w-auto"
+              >
+                Редактировать
+              </Button>
             )}
           </div>
         </CardContent>
@@ -350,36 +362,48 @@ export function ProfileForm() {
 
       <Card className="border-destructive/50">
         <CardHeader>
-          <CardTitle className="text-destructive">Опасная зона</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-destructive text-lg md:text-xl">
+            Опасная зона
+          </CardTitle>
+          <CardDescription className="text-sm md:text-base">
             Эти действия необратимы. Пожалуйста, будьте осторожны.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Выйти из аккаунта</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <h4 className="font-medium text-sm md:text-base">
+                Выйти из аккаунта
+              </h4>
               <p className="text-sm text-muted-foreground">
                 Выйти из текущей сессии
               </p>
             </div>
-            <Button variant="outline" onClick={logout}>
+            <Button
+              variant="outline"
+              onClick={logout}
+              className="w-full sm:w-auto"
+            >
               Выйти
             </Button>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium text-destructive">Удалить аккаунт</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <h4 className="font-medium text-destructive text-sm md:text-base">
+                Удалить аккаунт
+              </h4>
               <p className="text-sm text-muted-foreground">
                 Навсегда удалить ваш аккаунт и все данные
               </p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">Удалить аккаунт</Button>
+                <Button variant="destructive" className="w-full sm:w-auto">
+                  Удалить аккаунт
+                </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-[95vw] md:max-w-md">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
                   <AlertDialogDescription>

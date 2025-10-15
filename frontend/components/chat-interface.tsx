@@ -13,9 +13,6 @@ import {
   Database,
   Loader2,
   MessageCircle,
-  Wifi,
-  WifiOff,
-  RefreshCw,
   Trash2,
 } from "lucide-react";
 import { Message } from "@/types/chat";
@@ -68,11 +65,11 @@ function ChatMessage({ message }: ChatMessageProps) {
 
   const getButtonIcon = () => {
     if (isLoading) {
-      return <Loader2 className="h-5 w-5 animate-spin" />;
+      return <Loader2 className="h-4 w-4 animate-spin" />;
     } else if (isCurrentMessagePlaying) {
-      return <Pause className="h-5 w-5" />;
+      return <Pause className="h-4 w-4" />;
     } else {
-      return <Play className="h-5 w-5" />;
+      return <Play className="h-4 w-4" />;
     }
   };
 
@@ -96,17 +93,6 @@ function ChatMessage({ message }: ChatMessageProps) {
     }
   };
 
-  const getStatusIcon = () => {
-    switch (message.status) {
-      case "sending":
-        return <Loader2 className="h-3 w-3 animate-spin text-blue-500" />;
-      case "error":
-        return <div className="h-2 w-2 rounded-full bg-red-500" />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div
       className={`flex gap-3 ${
@@ -114,50 +100,50 @@ function ChatMessage({ message }: ChatMessageProps) {
       }`}
     >
       <div
-        className={`flex items-center justify-center h-10 w-10 rounded-full ${
+        className={`flex items-center justify-center h-8 w-8 md:h-10 md:w-10 rounded-full flex-shrink-0 ${
           message.sender === "user"
             ? "bg-primary text-primary-foreground"
             : "bg-secondary text-secondary-foreground"
         }`}
       >
         {message.sender === "user" ? (
-          <User className="h-5 w-5" />
+          <User className="h-4 w-4 md:h-5 md:w-5" />
         ) : (
-          <Bot className="h-5 w-5" />
+          <Bot className="h-4 w-4 md:h-5 md:w-5" />
         )}
       </div>
 
       <div
-        className={`max-w-[70%] rounded-lg px-4 py-3 ${
+        className={`max-w-[85%] md:max-w-[70%] rounded-lg px-3 py-2 md:px-4 md:py-3 ${
           message.sender === "user"
             ? "bg-primary text-primary-foreground"
             : "bg-muted"
         }`}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2 md:gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
               {message.content}
             </p>
             <div
-              className={`flex justify-between items-start gap-2 mt-2 text-xs ${
+              className={`flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 md:gap-2 mt-1 md:mt-2 text-xs ${
                 message.sender === "user"
                   ? "text-primary-foreground/70"
                   : "text-muted-foreground"
               }`}
             >
-              <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+              <span>{message.timestamp.toLocaleTimeString()}</span>
               {message.sender === "assistant" && (
-                <div className="flex-shrink-0 h-full">
+                <div className="flex-shrink-0">
                   <Button
-                    size="lg"
-                    className={`h-9 px-2 rounded-full transition-all duration-200 border-2 ${getButtonStyles()}`}
+                    size="sm"
+                    className={`h-7 md:h-9 px-2 md:px-3 rounded-full transition-all duration-200 border-2 text-xs md:text-sm ${getButtonStyles()}`}
                     onClick={handlePlayPause}
                     disabled={message.content.length === 0 || isLoading}
                     title={getButtonTooltip()}
                   >
                     {getButtonIcon()}
-                    <span>Озвучить</span>
+                    <span className="ml-1 md:ml-2">Озвучить</span>
                   </Button>
                 </div>
               )}
@@ -178,7 +164,6 @@ export function ChatInterface() {
     isConnecting,
     error,
     sendMessage,
-    retryConnection,
     clearMessages,
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -205,42 +190,43 @@ export function ChatInterface() {
   };
 
   return (
-    <Card className="w-full max-w-4xl h-[80vh] flex flex-col border shadow-lg">
-      <CardHeader className="border-b">
+    <Card className="w-full max-w-4xl h-[90vh] md:h-[80vh] flex flex-col border shadow-lg mx-2 md:mx-auto">
+      <CardHeader className="border-b p-3 md:p-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <MessageCircle className="h-7 w-7 text-primary" />
+          <CardTitle className="flex items-center gap-2 md:gap-3 text-lg md:text-xl">
+            <MessageCircle className="h-5 w-5 md:h-7 md:w-7 text-primary" />
             <div>
-              <div className="font-bold">ИИ-Ассистент</div>
-              <div className="text-sm font-normal text-muted-foreground">
-                Корпоративный университет Московского транспорта
+              <div className="font-bold text-sm md:text-base">Ассистент КУ</div>
+              <div className="text-xs md:text-sm font-normal text-muted-foreground hidden sm:block">
+                Корпоративный университет
               </div>
             </div>
           </CardTitle>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
               onClick={clearMessages}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 md:gap-2 h-8 md:h-9"
               title="Очистить историю"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline text-xs md:text-sm">Очистить</span>
             </Button>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="flex-1 p-0 flex flex-col h-4/5">
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6">
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} />
           ))}
 
           {error && (
             <div className="flex justify-center">
-              <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg text-sm">
+              <div className="bg-destructive/10 text-destructive px-3 py-2 rounded-lg text-xs md:text-sm">
                 {error}
               </div>
             </div>
@@ -249,7 +235,7 @@ export function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSendMessage} className="p-4 border-t bg-muted/30">
+        <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t bg-muted/30">
           <div className="flex gap-2">
             <Input
               value={inputMessage}
@@ -259,19 +245,19 @@ export function ChatInterface() {
                   ? "Введите ваше сообщение..."
                   : "Подключитесь к ассистенту..."
               }
-              className="flex-1 h-12 text-base border-2 focus:border-primary transition-colors"
+              className="flex-1 h-10 md:h-12 text-sm md:text-base border-2 focus:border-primary transition-colors"
               disabled={!isConnected || isConnecting}
             />
             <Button
               type="submit"
-              size="lg"
-              className="h-12 px-6 bg-primary hover:bg-primary/90 transition-all duration-200"
+              size="sm"
+              className="h-10 md:h-12 px-3 md:px-6 bg-primary hover:bg-primary/90 transition-all duration-200"
               disabled={!inputMessage.trim() || !isConnected || isConnecting}
             >
               {isConnecting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
               ) : (
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4 md:h-5 md:w-5" />
               )}
             </Button>
           </div>

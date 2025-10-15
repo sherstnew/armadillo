@@ -13,12 +13,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
-      <main className="container mx-auto py-8">
-        <div className="max-w-2xl mx-auto">
-          <ProfileForm />
-        </div>
+      <main className="flex-1 container mx-auto py-4 md:py-8 px-2 md:px-4">
+        <ProfileForm />
       </main>
     </div>
   )

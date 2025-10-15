@@ -1,22 +1,50 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import { useAuth } from '@/context/auth-context'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { LogIn, UserPlus, Mail, Lock, User, Users, Phone, Calendar, Building } from 'lucide-react'
+import { useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  LogIn,
+  UserPlus,
+  Mail,
+  Lock,
+  User,
+  Users,
+  Phone,
+  Calendar,
+  Building,
+} from "lucide-react";
 
 interface OnboardingStepProps {
-  currentStep: number
-  totalSteps: number
-  title: string
-  description: string
-  children: React.ReactNode
+  currentStep: number;
+  totalSteps: number;
+  title: string;
+  description: string;
+  children: React.ReactNode;
 }
 
-function OnboardingStep({ currentStep, totalSteps, title, description, children }: OnboardingStepProps) {
+function OnboardingStep({
+  currentStep,
+  totalSteps,
+  title,
+  description,
+  children,
+}: OnboardingStepProps) {
   return (
     <div className="space-y-4">
       <div className="text-center">
@@ -26,7 +54,7 @@ function OnboardingStep({ currentStep, totalSteps, title, description, children 
               <div
                 key={index}
                 className={`h-2 w-8 rounded-full transition-colors ${
-                  index === currentStep ? 'bg-primary' : 'bg-gray-300'
+                  index === currentStep ? "bg-primary" : "bg-gray-300"
                 }`}
               />
             ))}
@@ -37,67 +65,67 @@ function OnboardingStep({ currentStep, totalSteps, title, description, children 
       </div>
       {children}
     </div>
-  )
+  );
 }
 
 export function AuthForm() {
-  const [isLogin, setIsLogin] = useState(true)
-  const [onboardingStep, setOnboardingStep] = useState(0)
+  const [isLogin, setIsLogin] = useState(true);
+  const [onboardingStep, setOnboardingStep] = useState(0);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    role: 'student' as 'student' | 'teacher' | 'admin',
-    gender: 'male' as 'male' | 'female' | 'other',
+    email: "",
+    password: "",
+    first_name: "",
+    last_name: "",
+    role: "student" as "student" | "teacher" | "admin",
+    gender: "male" as "male" | "female" | "other",
     age: 18,
-    phone: '',
-    department: '',
-    position: '',
-  })
-  const [loading, setLoading] = useState(false)
-  const { login, register } = useAuth()
+    phone: "",
+    department: "",
+    position: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
       if (isLogin) {
-        await login({ email: formData.email, password: formData.password })
+        await login({ email: formData.email, password: formData.password });
       } else {
-        await register(formData)
+        await register(formData);
       }
     } catch (error) {
-      console.error('Auth error:', error)
-      alert(error instanceof Error ? error.message : 'Ошибка авторизации')
+      console.error("Auth error:", error);
+      alert(error instanceof Error ? error.message : "Ошибка авторизации");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   const nextStep = () => {
-    setOnboardingStep(prev => prev + 1)
-  }
+    setOnboardingStep((prev) => prev + 1);
+  };
 
   const prevStep = () => {
-    setOnboardingStep(prev => prev - 1)
-  }
+    setOnboardingStep((prev) => prev - 1);
+  };
 
   const onboardingSteps = [
     {
-      title: 'Основная информация',
-      description: 'Введите ваши основные данные',
+      title: "Основная информация",
+      description: "Введите ваши основные данные",
       content: (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -121,7 +149,7 @@ export function AuthForm() {
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -136,7 +164,7 @@ export function AuthForm() {
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -152,19 +180,19 @@ export function AuthForm() {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: 'Личная информация',
-      description: 'Расскажите немного о себе',
+      title: "Личная информация",
+      description: "Расскажите немного о себе",
       content: (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Пол</label>
-            <Select 
-              value={formData.gender} 
-              onValueChange={(value: 'male' | 'female' | 'other') => 
-                setFormData(prev => ({ ...prev, gender: value }))
+            <Select
+              value={formData.gender}
+              onValueChange={(value: "male" | "female" | "other") =>
+                setFormData((prev) => ({ ...prev, gender: value }))
               }
             >
               <SelectTrigger>
@@ -209,21 +237,21 @@ export function AuthForm() {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: 'Профессиональная информация',
-      description: 'Ваша роль в университете',
+      title: "Профессиональная информация",
+      description: "Ваша роль в университете",
       content: (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Роль</label>
             <div className="relative">
               <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Select 
-                value={formData.role} 
-                onValueChange={(value: 'student' | 'teacher' | 'admin') => 
-                  setFormData(prev => ({ ...prev, role: value }))
+              <Select
+                value={formData.role}
+                onValueChange={(value: "student" | "teacher" | "admin") =>
+                  setFormData((prev) => ({ ...prev, role: value }))
                 }
               >
                 <SelectTrigger className="pl-10">
@@ -238,7 +266,7 @@ export function AuthForm() {
             </div>
           </div>
 
-          {(formData.role === 'teacher' || formData.role === 'admin') && (
+          {(formData.role === "teacher" || formData.role === "admin") && (
             <>
               <div className="space-y-2">
                 <div className="relative">
@@ -264,9 +292,9 @@ export function AuthForm() {
             </>
           )}
         </div>
-      )
-    }
-  ]
+      ),
+    },
+  ];
 
   if (!isLogin && onboardingStep < onboardingSteps.length) {
     return (
@@ -287,10 +315,15 @@ export function AuthForm() {
               description={onboardingSteps[onboardingStep].description}
             >
               {onboardingSteps[onboardingStep].content}
-              
+
               <div className="flex gap-2 pt-4">
                 {onboardingStep > 0 && (
-                  <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={prevStep}
+                    className="flex-1"
+                  >
                     Назад
                   </Button>
                 )}
@@ -306,21 +339,21 @@ export function AuthForm() {
                         Регистрация...
                       </div>
                     ) : (
-                      'Зарегистрироваться'
+                      "Зарегистрироваться"
                     )}
                   </Button>
                 )}
               </div>
             </OnboardingStep>
           </form>
-          
+
           <div className="mt-6 text-center text-sm">
-            Уже есть аккаунт?{' '}
+            Уже есть аккаунт?{" "}
             <button
               type="button"
               onClick={() => {
-                setIsLogin(true)
-                setOnboardingStep(0)
+                setIsLogin(true);
+                setOnboardingStep(0);
               }}
               className="text-primary hover:underline font-medium"
             >
@@ -329,7 +362,7 @@ export function AuthForm() {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -345,13 +378,12 @@ export function AuthForm() {
           </div>
         </div>
         <CardTitle className="text-2xl flex items-center justify-center gap-2">
-          {isLogin ? 'Вход в систему' : 'Регистрация'}
+          {isLogin ? "Вход в систему" : "Регистрация"}
         </CardTitle>
         <CardDescription>
-          {isLogin 
-            ? 'Введите ваши учетные данные для входа' 
-            : 'Создайте новую учетную запись'
-          }
+          {isLogin
+            ? "Введите ваши учетные данные для входа"
+            : "Создайте новую учетную запись"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -370,7 +402,7 @@ export function AuthForm() {
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -385,37 +417,35 @@ export function AuthForm() {
               />
             </div>
           </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full h-11" 
-            disabled={loading}
-          >
+
+          <Button type="submit" className="w-full h-11" disabled={loading}>
             {loading ? (
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {isLogin ? 'Вход...' : 'Регистрация...'}
+                {isLogin ? "Вход..." : "Регистрация..."}
               </div>
+            ) : isLogin ? (
+              "Войти в систему"
             ) : (
-              isLogin ? 'Войти в систему' : 'Начать регистрацию'
+              "Начать регистрацию"
             )}
           </Button>
         </form>
-        
+
         <div className="mt-6 text-center text-sm">
-          {isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
+          {isLogin ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
           <button
             type="button"
             onClick={() => {
-              setIsLogin(!isLogin)
-              setOnboardingStep(0)
+              setIsLogin(!isLogin);
+              setOnboardingStep(0);
             }}
             className="text-primary hover:underline font-medium"
           >
-            {isLogin ? 'Зарегистрироваться' : 'Войти'}
+            {isLogin ? "Зарегистрироваться" : "Войти"}
           </button>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
