@@ -69,7 +69,7 @@ async def assistant(websocket: WebSocket) -> str:
         if not user:
             raise Error.USER_NOT_FOUND
         
-        payload = await payloads(user.role)
+        payload = await payloads(str(user.role.value))
         with GigaChat(credentials=GIGA_KEY, ca_bundle_file=ca_bundle_file, verify_ssl_certs=False) as giga:
             payload.messages.append(Messages(role=MessagesRole.USER, content=data))
             response = giga.chat(payload)
