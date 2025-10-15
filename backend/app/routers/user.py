@@ -48,11 +48,11 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
         }
     }
 )
-async def change_user(request: schemas.UserUpdate, get_current_user: User = Depends(get_current_user)):
+async def change_user(request: schemas.UserUpdate,):  #get_current_user: User = Depends(get_current_user)
     userdata = await User.find_one(User.email == request.email)
 
-    if not userdata:
-        raise HTTPException(stuseatus_code=404, detail="User not found")
+    if not userdata or not verify_password(request.password, userdata.password):
+        raise Error.UNAUTHORIZED_INVALID
 
     userdata.role = request.new_role
     userdata.age = request.new_age
@@ -74,10 +74,10 @@ async def change_user(request: schemas.UserUpdate, get_current_user: User = Depe
 async def annigilation_of_user(get_current_user: User = Depends(get_current_user)):
     userdel = await User.find_one(User.email == get_current_user.email)
     if not userdel:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise Error.USER_NOT_FOUND
 
     await userdel.delete()
-    return 200
+    return "Succesfully deleted user"
 
 
 @router.get(
@@ -92,7 +92,7 @@ async def annigilation_of_user(get_current_user: User = Depends(get_current_user
 async def get_user(get_current_user: User = Depends(get_current_user)):
     userdata = await User.find_one(User.email == get_current_user.email)
     if not userdata:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise Error.USER_NOT_FOUND
     return userdata
 
 
