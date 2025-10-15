@@ -12,6 +12,7 @@ from app.utils.auth import create_user, authenticate_user
 from app.utils.security import verify_password, get_current_user
 
 from typing import Annotated
+import uuid
 
 router = APIRouter(prefix="/user", tags=["User"])
 
@@ -41,18 +42,17 @@ async def log_in_user(request: Annotated[OAuth2PasswordRequestForm, Depends()]) 
 
 @router.patch(
     '/',
-    description="change user",
+    description="change user parameters",
     responses={
         401: {
             "description": "Unauthorised. You are not authorised to change user"
         }
     }
 )
-async def change_user(request: schemas.UserUpdate,):  #get_current_user: User = Depends(get_current_user)
-    userdata = await User.find_one(User.email == request.email)
-
-    if not userdata or not verify_password(request.password, userdata.password):
-        raise Error.UNAUTHORIZED_INVALID
+async def change_user(request: schemas.UserUpdate, get_current_user: User = Depends(get_current_user)): 
+    userdata = await User.find_one(User.email == get_current_user.email)
+    if not userdata:
+        raise Error.USER_NOT_FOUND
 
     userdata.role = request.new_role
     userdata.age = request.new_age

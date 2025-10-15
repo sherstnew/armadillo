@@ -25,8 +25,6 @@ class UserSchema(BaseModel):
     gender: Gender
 
 class UserUpdate(BaseModel):
-    email: str
-    password: str
     new_role: Role
     new_age: int
     new_gender: Gender
