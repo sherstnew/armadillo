@@ -4,11 +4,12 @@ import './globals.css'
 import { AuthProvider } from '@/context/auth-context'
 import { TTSProvider } from '@/context/tts-context'
 import { ChatProvider } from '@/context/chat-context'
+import { Toaster } from '@/lib/toaster'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
 export const metadata: Metadata = {
-  title: 'Ассистент КУ - Корпоративный университет',
+  title: 'Метроша - Корпоративный университет',
   description: 'ИИ-ассистент Корпоративного университета Московского транспорта',
 }
 
@@ -25,6 +26,7 @@ export default function RootLayout({
             <TTSProvider>
               <ChatProvider>
                 {children}
+                <Toaster />
               </ChatProvider>
             </TTSProvider>
           </AuthProvider>

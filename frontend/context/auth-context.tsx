@@ -19,33 +19,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     isAuthenticated: false,
     token: null,
-    loading: false,
+    loading: true,
   });
 
   useEffect(() => {
     // Восстанавливаем сессию из localStorage
-    setAuthState(authState => ({
-      user: authState.user,
-      isAuthenticated: authState.isAuthenticated,
-      token: authState.token,
-      loading: true,
-    }));
     const savedToken = localStorage.getItem("auth_token");
     const savedUser = localStorage.getItem("user");
 
     if (savedToken && savedUser) {
       try {
         const user = JSON.parse(savedUser);
-        setAuthState(authState => ({
+        setAuthState({
           user,
           isAuthenticated: true,
           token: savedToken,
           loading: false,
-        }));
+        });
       } catch (error) {
         console.error("Error restoring auth state:", error);
+        // logout() очистит loading=false
         logout();
       }
+    } else {
+      // Нет сохранённой сессии — отметим загрузку завершённой
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        token: null,
+        loading: false,
+      });
     }
   }, []);
 
@@ -76,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated: true,
         token: response.access_token,
-        loading: false,
+        loading: true,
       });
 
       // Сохраняем в localStorage

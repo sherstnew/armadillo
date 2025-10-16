@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
+import { toast } from '@/lib/toaster'
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -70,6 +72,7 @@ function OnboardingStep({
 }
 
 export function AuthForm() {
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -78,7 +81,7 @@ export function AuthForm() {
     first_name: "",
     last_name: "",
     role: "student" as "student" | "retraining" | "teacher" | "management",
-    gender: "male" as "male" | "female" | "other",
+    gender: "male" as "male" | "female",
     age: 18,
     phone: "",
     department: "",
@@ -93,22 +96,23 @@ export function AuthForm() {
 
     try {
       await login({ email: formData.email, password: formData.password });
+      location.reload();
     } catch (error) {
       console.error("Auth error:", error);
-      alert(error instanceof Error ? error.message : "Ошибка авторизации");
+      toast.error(error instanceof Error ? error.message : "Ошибка авторизации");
     } finally {
       setLoading(false);
     }
   };
-
+  
   const handleRegisterSubmit = async () => {
     setLoading(true);
-
     try {
       await register(formData);
+      location.reload();
     } catch (error) {
       console.error("Registration error:", error);
-      alert(error instanceof Error ? error.message : "Ошибка при регистрации");
+      toast.error(error instanceof Error ? error.message : "Ошибка при регистрации");
     } finally {
       setLoading(false);
     }
@@ -206,7 +210,7 @@ export function AuthForm() {
             <label className="text-sm font-medium">Пол</label>
             <Select
               value={formData.gender}
-              onValueChange={(value: "male" | "female" | "other") =>
+              onValueChange={(value: "male" | "female") =>
                 setFormData((prev) => ({ ...prev, gender: value }))
               }
             >
@@ -216,7 +220,6 @@ export function AuthForm() {
               <SelectContent>
                 <SelectItem value="male">Мужской</SelectItem>
                 <SelectItem value="female">Женский</SelectItem>
-                <SelectItem value="other">Другой</SelectItem>
               </SelectContent>
             </Select>
           </div>

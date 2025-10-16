@@ -30,16 +30,29 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { User, Mail, Phone, Calendar, Building, Briefcase } from "lucide-react";
+import { toast } from '@/lib/toaster'
 
 export function ProfileForm() {
   const { user, updateUser, deleteAccount, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  type ProfileFormData = {
+    first_name: string
+    last_name: string
+    email: string
+    role: 'student' | 'retraining' | 'teacher' | 'management'
+    gender: 'male' | 'female'
+    age: number
+    phone: string
+    department: string
+    position: string
+  }
+
+  const [formData, setFormData] = useState<ProfileFormData>({
     first_name: user?.first_name || "",
     last_name: user?.last_name || "",
     email: user?.email || "",
-    role: user?.role || "student",
-    gender: user?.gender || "male",
+    role: (user?.role as ProfileFormData['role']) || "student",
+    gender: (user?.gender as ProfileFormData['gender']) || "male",
     age: user?.age || 18,
     phone: user?.phone || "",
     department: user?.department || "",
@@ -56,7 +69,7 @@ export function ProfileForm() {
       setIsEditing(false);
     } catch (error) {
       console.error("Update error:", error);
-      alert("Ошибка при обновлении данных");
+      toast.error("Ошибка при обновлении данных");
     } finally {
       setLoading(false);
     }
@@ -83,7 +96,7 @@ export function ProfileForm() {
       await deleteAccount();
     } catch (error) {
       console.error("Delete error:", error);
-      alert("Ошибка при удалении аккаунта");
+      toast.error("Ошибка при удалении аккаунта");
     } finally {
       setLoading(false);
     }
@@ -172,8 +185,8 @@ export function ProfileForm() {
               {isEditing ? (
                 <Select
                   value={formData.gender}
-                  onValueChange={(value: "male" | "female" | "other") =>
-                    setFormData((prev) => ({ ...prev, gender: value }))
+                  onValueChange={(value: string) =>
+                    setFormData((prev) => ({ ...prev, gender: value as 'male' | 'female' }))
                   }
                 >
                   <SelectTrigger>
@@ -182,7 +195,6 @@ export function ProfileForm() {
                   <SelectContent>
                     <SelectItem value="male">Мужской</SelectItem>
                     <SelectItem value="female">Женский</SelectItem>
-                    <SelectItem value="other">Другой</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (

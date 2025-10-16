@@ -17,14 +17,17 @@ import {
 } from "lucide-react";
 import { Message } from "@/types/chat";
 import { useTTS } from "@/context/tts-context";
+import { toast } from '@/lib/toaster'
 import { useChat } from "@/context/chat-context";
 import { useAuth } from "@/context/auth-context";
+import { roles } from '@/lib/data/roles';
 
 interface ChatMessageProps {
   message: Message;
 }
 
 function ChatMessage({ message }: ChatMessageProps) {
+  const { user } = useAuth();
   const {
     isPlaying,
     currentPlayingId,
@@ -55,7 +58,7 @@ function ChatMessage({ message }: ChatMessageProps) {
       }
     } catch (error) {
       console.error("TTS error:", error);
-      alert("Ошибка воспроизведения аудио");
+      toast.error("Ошибка воспроизведения аудио");
     }
   };
 
@@ -99,6 +102,7 @@ function ChatMessage({ message }: ChatMessageProps) {
         message.sender === "user" ? "flex-row-reverse" : "flex-row"
       }`}
     >
+      {message.sender === "user" ? (
       <div
         className={`flex items-center justify-center h-8 w-8 md:h-10 md:w-10 rounded-full flex-shrink-0 ${
           message.sender === "user"
@@ -106,12 +110,15 @@ function ChatMessage({ message }: ChatMessageProps) {
             : "bg-secondary text-secondary-foreground"
         }`}
       >
-        {message.sender === "user" ? (
           <User className="h-4 w-4 md:h-5 md:w-5" />
-        ) : (
-          <Bot className="h-4 w-4 md:h-5 md:w-5" />
-        )}
       </div>
+        ) : (
+          <img
+            src={(roles[(user?.role as keyof typeof roles) ?? 'student']?.avatar || roles.student.avatar).src}
+            className="h-12 w-12"
+            alt="Аватарка бота"
+          />
+        )}
 
       <div
         className={`max-w-[85%] md:max-w-[70%] rounded-lg px-3 py-2 md:px-4 md:py-3 ${
@@ -185,7 +192,7 @@ export function ChatInterface() {
       setInputMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
-      alert("Ошибка отправки сообщения");
+      toast.error("Ошибка отправки сообщения");
     }
   };
 
@@ -196,7 +203,7 @@ export function ChatInterface() {
           <CardTitle className="flex items-center gap-2 md:gap-3 text-lg md:text-xl">
             <MessageCircle className="h-5 w-5 md:h-7 md:w-7 text-primary" />
             <div>
-              <div className="font-bold text-sm md:text-base">Ассистент КУ</div>
+              <div className="font-bold text-sm md:text-base">Метроша</div>
               <div className="text-xs md:text-sm font-normal text-muted-foreground hidden sm:block">
                 Корпоративный университет
               </div>
@@ -224,13 +231,13 @@ export function ChatInterface() {
             <ChatMessage key={message.id} message={message} />
           ))}
 
-          {error && (
+          {/* {error && (
             <div className="flex justify-center">
               <div className="bg-destructive/10 text-destructive px-3 py-2 rounded-lg text-xs md:text-sm">
                 {error}
               </div>
             </div>
-          )}
+          )} */}
 
           <div ref={messagesEndRef} />
         </div>

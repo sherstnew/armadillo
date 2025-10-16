@@ -8,104 +8,134 @@ class WebSocketService {
   private errorHandlers: ((error: string) => void)[] = [];
 
   async connect(token: string): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      console.log(12345)
-      // If already connected with same token, nothing to do
-      if (
-        this.socket?.readyState === WebSocket.OPEN &&
-        this.currentToken === token
-      ) {
-        resolve();
-        return;
-      }
+    // Quick retry strategy: increase timeout and retry a few times to avoid false timeouts
+    const maxAttempts = 3
+    const timeoutMs = 3000
 
-      // If there is an existing socket (different token or not open), close it first and wait
-      if (this.socket) {
-        try {
-          await this.waitForSocketClose(1000);
-        } catch (err) {
-          // If waiting failed or timed out, forcibly close and continue
-          try {
-            this.socket.close();
-          } catch (_e) {}
-        }
-        this.socket = null;
-        this.currentToken = null;
-      }
+    // If already connected with same token, nothing to do
+    if (this.socket?.readyState === WebSocket.OPEN && this.currentToken === token) {
+      return
+    }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (!baseUrl) {
-        reject(new Error("API base URL not configured"));
-        return;
-      }
-
-      // Создаем WebSocket URL
-      const wsUrl = baseUrl.replace(/^https?:\/\//, "wss://") + "/ai/";
-      const url = `${wsUrl}?Authorization=${encodeURIComponent(token)}`;
-
-      console.log("🔌 Connecting to WebSocket...");
-
+    // If there is an existing socket (different token or not open), close it first and wait
+    if (this.socket) {
       try {
-        this.socket = new WebSocket(url);
-        this.currentToken = token;
-
-        let connectionTimeout: ReturnType<typeof setTimeout> | null =
-          setTimeout(() => {
-            if (this.socket?.readyState !== WebSocket.OPEN) {
-              const err = new Error("Connection timeout");
-              this.notifyErrorHandlers(err.message);
-              reject(err);
-            }
-          }, 500);
-
-        const cleanup = () => {
-          if (connectionTimeout) {
-            clearTimeout(connectionTimeout);
-            connectionTimeout = null;
-          }
-        };
-
-        this.socket.onopen = () => {
-          cleanup();
-          console.log("✅ WebSocket connected successfully");
-          this.notifyConnectionHandlers(true);
-          resolve();
-        };
-
-        this.socket.onmessage = (event) => {
-          console.log("📨 Received message from assistant");
-          const assistantMessage: Message = {
-            id: `ai_${Date.now()}`,
-            content: event.data,
-            sender: "assistant",
-            timestamp: new Date(),
-            status: "sent",
-          };
-          this.notifyMessageHandlers(assistantMessage);
-        };
-
-        this.socket.onerror = (event) => {
-          cleanup();
-          console.error("❌ WebSocket error");
-          const errMsg =
-            (event && (event as any).message) || "WebSocket connection error";
-          this.notifyErrorHandlers(errMsg);
-          reject(new Error(errMsg));
-        };
-
-        this.socket.onclose = (event) => {
-          cleanup();
-          console.log("🔌 WebSocket disconnected");
-          this.notifyConnectionHandlers(false);
-          // clear token on close
-          this.currentToken = null;
-          this.socket = null;
-        };
-      } catch (error) {
-        this.notifyErrorHandlers((error as Error)?.message || String(error));
-        reject(error);
+        await this.waitForSocketClose(1000)
+      } catch (err) {
+        try {
+          this.socket.close()
+        } catch (_e) {}
       }
-    });
+      this.socket = null
+      this.currentToken = null
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+    if (!baseUrl) {
+      throw new Error('API base URL not configured')
+    }
+
+    const wsUrl = baseUrl.replace(/^https?:\/\//, 'wss://') + '/ai/'
+    const url = `${wsUrl}?Authorization=${encodeURIComponent(token)}`
+
+    console.log('🔌 Connecting to WebSocket...')
+
+    // helper to open a socket once and wait for open or fail
+    const openOnce = (): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        try {
+          const ws = new WebSocket(url)
+
+          let connectionTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+            connectionTimer = null
+            try {
+              ws.close()
+            } catch (_e) {}
+            const err = new Error('Connection timeout')
+            this.notifyErrorHandlers(err.message)
+            reject(err)
+          }, timeoutMs)
+
+          const cleanup = () => {
+            if (connectionTimer) {
+              clearTimeout(connectionTimer)
+              connectionTimer = null
+            }
+          }
+
+          ws.onopen = () => {
+            cleanup()
+            // attach socket and handlers
+            this.socket = ws
+            this.currentToken = token
+            console.log('✅ WebSocket connected successfully')
+            this.notifyConnectionHandlers(true)
+            resolve()
+          }
+
+          ws.onmessage = (event) => {
+            const assistantMessage: Message = {
+              id: `ai_${Date.now()}`,
+              content: event.data,
+              sender: 'assistant',
+              timestamp: new Date(),
+              status: 'sent',
+            }
+            this.notifyMessageHandlers(assistantMessage)
+          }
+
+          ws.onerror = (event) => {
+            cleanup()
+            const errMsg = (event && (event as any).message) || 'WebSocket connection error'
+            this.notifyErrorHandlers(errMsg)
+            try {
+              ws.close()
+            } catch (_e) {}
+            reject(new Error(errMsg))
+          }
+
+          ws.onclose = () => {
+            cleanup()
+            console.log('🔌 WebSocket disconnected')
+            this.notifyConnectionHandlers(false)
+            if (this.socket === ws) {
+              this.currentToken = null
+              this.socket = null
+            }
+          }
+        } catch (error) {
+          this.notifyErrorHandlers((error as Error)?.message || String(error))
+          reject(error)
+        }
+      })
+    }
+
+    // attempt loop with simple backoff + jitter
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await openOnce()
+        return
+      } catch (err: any) {
+        // if authorization error, don't retry
+        const msg = err?.message || String(err)
+        if (msg.includes('401') || msg.toLowerCase().includes('unauthoriz')) {
+          throw err
+        }
+
+        this.notifyErrorHandlers(msg)
+
+        if (attempt === maxAttempts) {
+          throw err
+        }
+
+        // backoff with jitter
+        const baseDelay = 500 * Math.pow(2, attempt - 1)
+        const jitter = Math.floor(Math.random() * 300)
+        const delay = Math.min(30000, baseDelay + jitter)
+        await new Promise(r => setTimeout(r, delay))
+        console.log(`🔁 Retrying WebSocket connect (attempt ${attempt + 1}) after ${delay}ms`)
+      }
+    }
   }
 
   private waitForSocketClose(timeoutMs: number): Promise<void> {
