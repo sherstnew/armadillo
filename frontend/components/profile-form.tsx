@@ -387,9 +387,6 @@ export function ProfileForm() {
           <CardTitle className="text-destructive text-lg md:text-xl">
             Опасная зона
           </CardTitle>
-          <CardDescription className="text-sm md:text-base">
-            Эти действия необратимы. Пожалуйста, будьте осторожны.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -410,7 +407,7 @@ export function ProfileForm() {
             </Button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-1">
               <h4 className="font-medium text-destructive text-sm md:text-base">
                 Удалить аккаунт
@@ -444,7 +441,7 @@ export function ProfileForm() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

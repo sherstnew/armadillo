@@ -454,12 +454,11 @@ export function AuthForm() {
 
         <div className="w-full flex justify-center items-center mt-3 text-gray-500 text-sm">или войти через тестовый аккаунт</div>
 
-        {/* Quick login buttons for demo accounts */}
         {isLogin && (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={async () => {
                 setLoading(true)
                 try {
@@ -471,14 +470,14 @@ export function AuthForm() {
                   setLoading(false)
                 }
               }}
-              className="w-full bg-primary text-white hover:text-white hover:bg-primary/60"
+              className="w-full text-black hover:text-black"
             >
               Войти как студент
             </Button>
 
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={async () => {
                 setLoading(true)
                 try {
@@ -490,14 +489,14 @@ export function AuthForm() {
                   setLoading(false)
                 }
               }}
-              className="w-full bg-amber-500 text-white hover:text-white hover:bg-amber-600"
+              className="w-full text-black hover:text-black"
             >
               Войти как поступающий
             </Button>
 
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={async () => {
                 setLoading(true)
                 try {
@@ -509,14 +508,14 @@ export function AuthForm() {
                   setLoading(false)
                 }
               }}
-              className="w-full bg-emerald-500 text-white hover:text-white hover:bg-emerald-600"
+              className="w-full text-black hover:text-black"
             >
               Войти как учитель
             </Button>
 
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={async () => {
                 setLoading(true)
                 try {
@@ -528,7 +527,7 @@ export function AuthForm() {
                   setLoading(false)
                 }
               }}
-              className="w-full bg-violet-600 text-white hover:text-white hover:bg-violet-700/70"
+              className="w-full text-black hover:text-black"
             >
               Войти как управляющий
             </Button>
