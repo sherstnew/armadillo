@@ -5,15 +5,19 @@ import managementAvatar from './avatars/management.webp';
 
 export const roles = {
   'student': {
-    avatar: studentAvatar
+    avatar: studentAvatar,
+    video: '/videos/student.webm'
   },
   'retraining': {
     avatar: retrainingAvatar,
+    video: '/videos/student.webm'
   },
   'teacher': {
     avatar: teacherAvatar,
+    video: '/videos/student.webm'
   },
   'management': {
     avatar: managementAvatar,
+    video: '/videos/student.webm'
   },
 }

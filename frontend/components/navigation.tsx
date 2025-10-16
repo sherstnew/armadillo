@@ -57,7 +57,7 @@ export function Navigation() {
         <div className="flex items-center gap-2 md:gap-4">
           {user && (
             <>
-              <div className="hidden sm:flex items-center gap-3 text-sm">
+              <Link href='/profile' className="hidden sm:flex items-center gap-3 text-sm">
                 <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
                   <User className="h-4 w-4 text-primary" />
                 </div>
@@ -65,7 +65,7 @@ export function Navigation() {
                   <span className="font-medium">{user.first_name} {user.last_name}</span>
                   <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
                 </div>
-              </div>
+              </Link>
               
               <Button 
                 variant="outline" 

@@ -278,7 +278,7 @@ export function AuthForm() {
                 <SelectContent>
                   <SelectItem value="student">Студент</SelectItem>
                   <SelectItem value="teacher">Преподаватель</SelectItem>
-                  <SelectItem value="retraining">Специалист</SelectItem>
+                  <SelectItem value="retraining">Поступающий</SelectItem>
                   <SelectItem value="management">Управляющий</SelectItem>
                 </SelectContent>
               </Select>

@@ -12,6 +12,8 @@ interface TTSContextType {
   resumeMessage: () => void
   getCacheStats: () => any
   clearCache: () => void
+  progress: number
+  duration: number | null
 }
 
 const TTSContext = createContext<TTSContextType | undefined>(undefined)
@@ -22,6 +24,8 @@ export function TTSProvider({ children }: { children: React.ReactNode }) {
   const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const currentBlobUrl = useRef<string | null>(null)
+  const [progress, setProgress] = useState<number>(0)
+  const [duration, setDuration] = useState<number | null>(null)
 
   const cleanupAudio = () => {
     if (audioRef.current) {
@@ -69,6 +73,8 @@ export function TTSProvider({ children }: { children: React.ReactNode }) {
         setCurrentPlayingId(null)
         setLoadingAudioId(null)
         cleanupAudio()
+        setProgress(0)
+        setDuration(null)
       })
 
       audio.addEventListener('pause', () => {
@@ -80,15 +86,34 @@ export function TTSProvider({ children }: { children: React.ReactNode }) {
         setLoadingAudioId(null)
       })
 
+      audio.addEventListener('loadedmetadata', () => {
+        try {
+          setDuration(audio.duration || null)
+          setProgress(audio.currentTime && audio.duration ? audio.currentTime / audio.duration : 0)
+        } catch (e) {
+          setDuration(null)
+          setProgress(0)
+        }
+      })
+
+      audio.addEventListener('timeupdate', () => {
+        if (audio.duration && audio.duration > 0) {
+          setProgress(audio.currentTime / audio.duration)
+        }
+      })
+
       audio.addEventListener('error', (e) => {
         console.error('Audio playback error:', e)
         setLoadingAudioId(null)
         setIsPlaying(false)
         setCurrentPlayingId(null)
         cleanupAudio()
+        setProgress(0)
+        setDuration(null)
       })
 
       await audio.play()
+
 
     } catch (error) {
       console.error('TTS playback error:', error)
@@ -122,6 +147,14 @@ export function TTSProvider({ children }: { children: React.ReactNode }) {
     ttsService.clearCache()
   }
 
+  // reset progress when cleaning up
+  React.useEffect(() => {
+    return () => {
+      setProgress(0)
+      setDuration(null)
+    }
+  }, [])
+
   React.useEffect(() => {
     ttsService.restoreToken()
     
@@ -140,6 +173,8 @@ export function TTSProvider({ children }: { children: React.ReactNode }) {
       resumeMessage,
       getCacheStats,
       clearCache,
+      progress,
+      duration,
     }}>
       {children}
     </TTSContext.Provider>

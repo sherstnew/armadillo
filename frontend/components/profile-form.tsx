@@ -29,30 +29,39 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Mail, Phone, Calendar, Building, Briefcase } from "lucide-react";
-import { toast } from '@/lib/toaster'
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Building,
+  Briefcase,
+  Venus,
+  Mars,
+} from "lucide-react";
+import { toast } from "@/lib/toaster";
 
 export function ProfileForm() {
   const { user, updateUser, deleteAccount, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   type ProfileFormData = {
-    first_name: string
-    last_name: string
-    email: string
-    role: 'student' | 'retraining' | 'teacher' | 'management'
-    gender: 'male' | 'female'
-    age: number
-    phone: string
-    department: string
-    position: string
-  }
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: "student" | "retraining" | "teacher" | "management";
+    gender: "male" | "female";
+    age: number;
+    phone: string;
+    department: string;
+    position: string;
+  };
 
   const [formData, setFormData] = useState<ProfileFormData>({
     first_name: user?.first_name || "",
     last_name: user?.last_name || "",
     email: user?.email || "",
-    role: (user?.role as ProfileFormData['role']) || "student",
-    gender: (user?.gender as ProfileFormData['gender']) || "male",
+    role: (user?.role as ProfileFormData["role"]) || "student",
+    gender: (user?.gender as ProfileFormData["gender"]) || "male",
     age: user?.age || 18,
     phone: user?.phone || "",
     department: user?.department || "",
@@ -159,24 +168,10 @@ export function ProfileForm() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Email</label>
-            {isEditing ? (
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, email: e.target.value }))
-                  }
-                  className="pl-10"
-                />
-              </div>
-            ) : (
-              <div className="p-2 border rounded-md bg-muted/50 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                {user.email}
-              </div>
-            )}
+            <div className="p-2 border rounded-md bg-muted/50 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              {user.email}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -186,7 +181,10 @@ export function ProfileForm() {
                 <Select
                   value={formData.gender}
                   onValueChange={(value: string) =>
-                    setFormData((prev) => ({ ...prev, gender: value as 'male' | 'female' }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      gender: value as "male" | "female",
+                    }))
                   }
                 >
                   <SelectTrigger>
@@ -198,12 +196,21 @@ export function ProfileForm() {
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="p-2 border rounded-md bg-muted/50 capitalize">
-                  {user.gender === "male"
-                    ? "Мужской"
-                    : user.gender === "female"
-                    ? "Женский"
-                    : "Другой"}
+                <div className="p-2 border rounded-md bg-muted/50 capitalize flex gap-2 items-center">
+                  {user.gender === "male" ? (
+                    <Mars className="h-4 w-4 text-muted-foreground" />
+                  ) : user.gender === "female" ? (
+                    <Venus className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    "Другой"
+                  )}
+                  <span>
+                    {user.gender === "male"
+                      ? "Мужской"
+                      : user.gender === "female"
+                      ? "Женский"
+                      : "Другой"}
+                  </span>
                 </div>
               )}
             </div>
@@ -273,7 +280,7 @@ export function ProfileForm() {
                 <SelectContent>
                   <SelectItem value="student">Студент</SelectItem>
                   <SelectItem value="teacher">Преподаватель</SelectItem>
-                  <SelectItem value="retraining">Специалист</SelectItem>
+                  <SelectItem value="retraining">Поступающий</SelectItem>
                   <SelectItem value="management">Управляющий</SelectItem>
                 </SelectContent>
               </Select>
@@ -285,7 +292,7 @@ export function ProfileForm() {
                   : user.role === "teacher"
                   ? "Преподаватель"
                   : user.role === "retraining"
-                  ? "Специалист"
+                  ? "Поступающий"
                   : "Управляющий"}
               </div>
             )}
