@@ -46,12 +46,12 @@ async def payloads(payload: str, age: int, gender: str):
             temperature=0.8,
             max_tokens=10000,
         )
-    if payload == "applicant":
+    if payload == "retraining":
         return Chat(
             messages=[
                 Messages(
                     role=MessagesRole.SYSTEM,
-                    content=prompts.prompts["applicant"]+f"Учитывай возраст:{age} и пол: {gender}"
+                    content=prompts.prompts["retraining"]+f"Учитывай возраст:{age} и пол: {gender}"
                 )
             ],
             temperature=0.4,
