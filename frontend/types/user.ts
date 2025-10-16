@@ -3,14 +3,15 @@ export interface User {
   email: string
   first_name: string
   last_name: string
-  role: "student" | "retraining" | "teacher" | "management"
-  gender: 'male' | 'female' | 'other'
+  role: 'student' | 'retraining' | 'teacher' | 'management'
+  gender: 'male' | 'female'
   age: number
   phone?: string
   department?: string
   position?: string
   createdAt: Date
   token?: string
+  conversationId?: string
 }
 
 export interface AuthState {

@@ -5,34 +5,42 @@ class WebSocketService {
   private messageHandlers: ((message: Message) => void)[] = []
   private connectionHandlers: ((connected: boolean) => void)[] = []
   private errorHandlers: ((error: string) => void)[] = []
-  private connectionPromise: Promise<void> | null = null
 
-  connect(token: string): Promise<void> {
-    // Если уже есть активное подключение, возвращаем существующий промис
-    if (this.connectionPromise) {
-      return this.connectionPromise
-    }
-
-    this.connectionPromise = new Promise((resolve, reject) => {
+  async connect(token: string): Promise<void> {
+    return new Promise((resolve, reject) => {
       if (this.socket?.readyState === WebSocket.OPEN) {
         resolve()
         return
       }
 
-      // Закрываем существующее соединение если есть
+      // Закрываем существующее соединение
       if (this.socket) {
         this.socket.close()
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('https://', 'wss://').replace('http://', 'ws://')
-      const url = `${baseUrl}/ai/?Authorization=${encodeURIComponent(token)}`
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!baseUrl) {
+        reject(new Error('API base URL not configured'))
+        return
+      }
+
+      // Создаем WebSocket URL
+      const wsUrl = baseUrl.replace(/^https?:\/\//, 'wss://') + '/ai'
+      const url = `${wsUrl}?Authorization=${encodeURIComponent(token)}`
 
       console.log('🔌 Connecting to WebSocket...')
-      
+
       try {
         this.socket = new WebSocket(url)
 
+        const connectionTimeout = setTimeout(() => {
+          if (this.socket?.readyState !== WebSocket.OPEN) {
+            reject(new Error('Connection timeout'))
+          }
+        }, 500)
+
         this.socket.onopen = () => {
+          clearTimeout(connectionTimeout)
           console.log('✅ WebSocket connected successfully')
           this.notifyConnectionHandlers(true)
           resolve()
@@ -41,7 +49,7 @@ class WebSocketService {
         this.socket.onmessage = (event) => {
           console.log('📨 Received message from assistant')
           const assistantMessage: Message = {
-            id: Date.now().toString(),
+            id: `ai_${Date.now()}`,
             content: event.data,
             sender: 'assistant',
             timestamp: new Date(),
@@ -50,45 +58,33 @@ class WebSocketService {
           this.notifyMessageHandlers(assistantMessage)
         }
 
-        this.socket.onerror = (error) => {
-          console.error('❌ WebSocket error:', error)
-          this.notifyErrorHandlers('Ошибка подключения к ассистенту')
-          reject(error)
+        this.socket.onerror = (event) => {
+          clearTimeout(connectionTimeout)
+          console.error('❌ WebSocket error')
+          reject(new Error('WebSocket connection error'))
         }
 
         this.socket.onclose = (event) => {
-          console.log('🔌 WebSocket disconnected:', event.code, event.reason)
+          clearTimeout(connectionTimeout)
+          console.log('🔌 WebSocket disconnected')
           this.notifyConnectionHandlers(false)
-          this.connectionPromise = null
-          
-          if (event.code !== 1000) {
-            this.notifyErrorHandlers('Соединение с ассистентом прервано')
-          }
         }
 
       } catch (error) {
-        console.error('❌ WebSocket connection failed:', error)
-        this.connectionPromise = null
         reject(error)
       }
     })
-
-    return this.connectionPromise
   }
 
   disconnect(): void {
-    console.log('🔌 Disconnecting WebSocket...')
-    this.connectionPromise = null
-    
     if (this.socket) {
-      this.socket.close(1000, 'Normal closure')
+      this.socket.close()
       this.socket = null
     }
   }
 
   sendMessage(content: string): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      console.log('📤 Sending message to assistant:', content.substring(0, 50) + '...')
       this.socket.send(content)
     } else {
       throw new Error('WebSocket is not connected')

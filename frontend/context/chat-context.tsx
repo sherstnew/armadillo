@@ -1,16 +1,20 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { Message, ChatState } from '@/types/chat'
+import { Conversation, ChatMessage as ApiChatMessage } from '@/types/api'
 import { websocketService } from '@/lib/websocket-service'
 import { useAuth } from '@/context/auth-context'
+import { apiService } from '@/lib/api'
 
 interface ChatContextType extends ChatState {
   sendMessage: (content: string) => void
   connect: () => Promise<void>
   disconnect: () => void
   clearMessages: () => void
+  clearConversation: () => Promise<void>
   retryConnection: () => Promise<void>
+  loadConversation: () => Promise<void>
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -22,43 +26,70 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     isConnected: false,
     isConnecting: false,
     error: null,
+    hasHistory: false,
   })
 
-  // Refs для предотвращения повторных подключений
-  const connectionAttempted = useRef(false)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isMounted = useRef(true)
+  // Загрузка истории
+  const loadConversation = useCallback(async (): Promise<void> => {
+    if (!token) return
 
-  // Восстановление сообщений из localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedMessages = localStorage.getItem('chat_messages')
-      if (savedMessages) {
-        try {
-          const messages = JSON.parse(savedMessages).map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }))
-          setChatState(prev => ({ ...prev, messages }))
-        } catch (error) {
-          console.error('Error restoring messages:', error)
-        }
-      }
-    }
-  }, [])
+    try {
+      console.log('📖 Loading conversation history...')
+      const conversation = await apiService.getConversation(token)
+      
+      // Конвертируем сообщения из API в наш формат
+      const messages: Message[] = conversation.messages.map((msg: ApiChatMessage, index: number) => ({
+        id: `hist_${index}_${Date.now()}`,
+        content: msg.content,
+        sender: msg.role === 'user' ? 'user' : 'assistant',
+        timestamp: new Date(),
+        status: 'sent'
+      }))
 
-  // Сохранение сообщений в localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && chatState.messages.length > 0) {
-      localStorage.setItem('chat_messages', JSON.stringify(chatState.messages))
+      setChatState(prev => ({
+        ...prev,
+        messages,
+        hasHistory: messages.length > 0
+      }))
+      
+      console.log('✅ Conversation history loaded:', messages.length, 'messages')
+    } catch (error: any) {
+      console.log('ℹ️ No conversation history found or error loading:', error.message)
+      // Если истории нет - это нормально
     }
-  }, [chatState.messages])
+  }, [token])
+
+  // Очистка истории
+  const clearConversation = useCallback(async (): Promise<void> => {
+    if (!token) return
+
+    try {
+      console.log('🗑️ Clearing conversation history...')
+      await apiService.clearConversation(token)
+      
+      // Оставляем только последнее сообщение (как на бэкенде)
+      const lastMessage = chatState.messages[chatState.messages.length - 1]
+      const clearedMessages = lastMessage ? [lastMessage] : []
+      
+      setChatState(prev => ({
+        ...prev,
+        messages: clearedMessages,
+        hasHistory: false
+      }))
+      
+      console.log('✅ Conversation history cleared')
+    } catch (error) {
+      console.error('❌ Error clearing conversation:', error)
+      throw error
+    }
+  }, [token, chatState.messages])
 
   const addMessage = useCallback((message: Message) => {
     setChatState(prev => ({
       ...prev,
       messages: [...prev.messages, message],
-      error: null
+      error: null,
+      hasHistory: true
     }))
   }, [])
 
@@ -76,26 +107,35 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not authenticated')
     }
 
-    // Предотвращаем множественные подключения
-    if (chatState.isConnected || chatState.isConnecting || connectionAttempted.current) {
+    if (chatState.isConnected || chatState.isConnecting) {
       console.log('🔄 Connection already in progress or established')
       return
     }
 
     console.log('🔌 Starting WebSocket connection...')
-    connectionAttempted.current = true
     setChatState(prev => ({ ...prev, isConnecting: true, error: null }))
 
     try {
       await websocketService.connect(token)
       console.log('✅ WebSocket connected successfully')
-    } catch (error) {
+      setChatState(prev => ({ 
+        ...prev, 
+        isConnected: true, 
+        isConnecting: false 
+      }))
+    } catch (error: any) {
       console.error('❌ WebSocket connection failed:', error)
-      connectionAttempted.current = false
+      
+      let errorMessage = 'Не удалось подключиться к ассистенту'
+      if (error.message?.includes('401')) {
+        errorMessage = 'Ошибка авторизации'
+      }
+      
       setChatState(prev => ({
         ...prev,
         isConnecting: false,
-        error: 'Не удалось подключиться к ассистенту'
+        isConnected: false,
+        error: errorMessage
       }))
       throw error
     }
@@ -103,19 +143,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const disconnect = useCallback((): void => {
     console.log('🔌 Disconnecting WebSocket...')
-    connectionAttempted.current = false
     websocketService.disconnect()
     setChatState(prev => ({
       ...prev,
       isConnected: false,
       isConnecting: false,
-      error: null
     }))
-
-    // Очищаем таймаут переподключения
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-    }
   }, [])
 
   const sendMessage = useCallback((content: string): void => {
@@ -124,7 +157,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user_${Date.now()}`,
       content,
       sender: 'user',
       timestamp: new Date(),
@@ -144,35 +177,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [chatState.isConnected, addMessage, updateMessageStatus])
 
   const clearMessages = useCallback((): void => {
-    setChatState(prev => ({ ...prev, messages: [] }))
-    localStorage.removeItem('chat_messages')
+    setChatState(prev => ({ 
+      ...prev, 
+      messages: [],
+      hasHistory: false
+    }))
   }, [])
 
   const retryConnection = useCallback(async (): Promise<void> => {
     console.log('🔄 Manual reconnection attempt')
     await connect()
   }, [connect])
-
-  // Умное переподключение с экспоненциальной задержкой
-  const scheduleReconnect = useCallback(() => {
-    if (!isMounted.current || !isAuthenticated) return
-
-    // Очищаем предыдущий таймаут
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-    }
-
-    // Увеличиваем задержку с каждой попыткой (max 30 секунд)
-    const delay = Math.min(1000 * Math.pow(2, connectionAttempted.current ? 1 : 0), 30000)
-    
-    console.log(`🔄 Scheduling reconnect in ${delay}ms`)
-    
-    reconnectTimeoutRef.current = setTimeout(() => {
-      if (isMounted.current && isAuthenticated && !chatState.isConnected) {
-        connect().catch(console.error)
-      }
-    }, delay)
-  }, [isAuthenticated, chatState.isConnected, connect])
 
   // Подписка на события WebSocket
   useEffect(() => {
@@ -186,30 +201,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         isConnected: connected,
         isConnecting: false,
-        error: connected ? null : prev.error
       }))
-
-      if (connected) {
-        connectionAttempted.current = false
-        // Очищаем таймаут переподключения при успешном подключении
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current)
-        }
-      } else if (isMounted.current && isAuthenticated) {
-        // Планируем переподключение только если пользователь аутентифицирован
-        connectionAttempted.current = false
-        scheduleReconnect()
-      }
     }
 
     const handleError = (error: string) => {
       console.error('❌ WebSocket error:', error)
       setChatState(prev => ({ 
         ...prev, 
-        error, 
+        error,
         isConnecting: false 
       }))
-      connectionAttempted.current = false
     }
 
     websocketService.onMessage(handleMessage)
@@ -220,37 +221,30 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       websocketService.removeMessageHandler(handleMessage)
       websocketService.removeConnectionHandler(handleConnectionChange)
       websocketService.removeErrorHandler(handleError)
+      disconnect()
     }
-  }, [addMessage, isAuthenticated, scheduleReconnect])
+  }, [addMessage, disconnect])
 
-  // Управление подключением при изменении аутентификации
+  // Загрузка истории при аутентификации
   useEffect(() => {
-    isMounted.current = true
-
     if (isAuthenticated && token) {
-      console.log('👤 User authenticated, connecting WebSocket...')
-      // Небольшая задержка перед первым подключением
-      const timeout = setTimeout(() => {
-        if (isMounted.current) {
-          connect().catch(console.error)
-        }
-      }, 3000)
-
-      return () => clearTimeout(timeout)
+      console.log('👤 User authenticated, loading conversation...')
+      loadConversation()
     } else {
-      console.log('👤 User not authenticated, disconnecting WebSocket...')
-      disconnect()
+      // При выходе очищаем сообщения
+      setChatState({
+        messages: [],
+        isConnected: false,
+        isConnecting: false,
+        error: null,
+        hasHistory: false,
+      })
     }
+  }, [isAuthenticated, token, loadConversation])
 
-    return () => {
-      isMounted.current = false
-      disconnect()
-    }
-  }, [isAuthenticated, token, connect, disconnect])
-
-  // Приветственное сообщение
+  // Приветственное сообщение (только если нет истории)
   useEffect(() => {
-    if (chatState.messages.length === 0 && user && chatState.isConnected) {
+    if (chatState.messages.length === 0 && user && !chatState.hasHistory) {
       const welcomeMessage: Message = {
         id: 'welcome',
         content: getWelcomeMessage(user.role),
@@ -259,7 +253,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }
       addMessage(welcomeMessage)
     }
-  }, [user, chatState.messages.length, chatState.isConnected, addMessage])
+  }, [user, chatState.messages.length, chatState.hasHistory, addMessage])
 
   const getWelcomeMessage = (role: string): string => {
     const messages = {
@@ -278,7 +272,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       connect,
       disconnect,
       clearMessages,
+      clearConversation,
       retryConnection,
+      loadConversation,
     }}>
       {children}
     </ChatContext.Provider>

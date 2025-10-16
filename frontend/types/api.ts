@@ -49,3 +49,28 @@ export interface UpdateProfileRequest {
   department?: string
   position?: string
 }
+
+export interface Conversation {
+  user_id: string
+  messages: ChatMessage[]
+}
+
+export interface ChatMessage {
+  role: 'user' | 'ai'
+  content: string
+  timestamp?: string
+}
+
+export interface UserWithHistory {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  role: 'student' | 'retraining' | 'teacher' | 'management'
+  age: number
+  gender: 'male' | 'female'
+  history: Array<{
+    id: string
+    collection: string
+  }>
+}

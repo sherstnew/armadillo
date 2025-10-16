@@ -11,4 +11,5 @@ export interface ChatState {
   isConnected: boolean
   isConnecting: boolean
   error: string | null
+  hasHistory: boolean
 }
