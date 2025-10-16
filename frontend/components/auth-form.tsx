@@ -452,6 +452,89 @@ export function AuthForm() {
           </Button>
         </form>
 
+        <div className="w-full flex justify-center items-center mt-3 text-gray-500 text-sm">или войти через тестовый аккаунт</div>
+
+        {/* Quick login buttons for demo accounts */}
+        {isLogin && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  await login({ email: 'student@sol.ru', password: 'qwerty' })
+                  location.reload()
+                } catch (err) {
+                  toast.error('Ошибка входа')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              className="w-full bg-primary text-white hover:text-white hover:bg-primary/60"
+            >
+              Войти как студент
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  await login({ email: 'applicant@sol.ru', password: 'qwerty' })
+                  location.reload()
+                } catch (err) {
+                  toast.error('Ошибка входа')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              className="w-full bg-amber-500 text-white hover:text-white hover:bg-amber-600"
+            >
+              Войти как поступающий
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  await login({ email: 'teacher@sol.ru', password: 'qwerty' })
+                  location.reload()
+                } catch (err) {
+                  toast.error('Ошибка входа')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              className="w-full bg-emerald-500 text-white hover:text-white hover:bg-emerald-600"
+            >
+              Войти как учитель
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  await login({ email: 'management@sol.ru', password: 'qwerty' })
+                  location.reload()
+                } catch (err) {
+                  toast.error('Ошибка входа')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              className="w-full bg-violet-600 text-white hover:text-white hover:bg-violet-700/70"
+            >
+              Войти как управляющий
+            </Button>
+          </div>
+        )}
+
         <div className="mt-6 text-center text-sm">
           {isLogin ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
           <button

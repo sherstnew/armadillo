@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from 'next/navigation'
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -296,6 +297,7 @@ export function ChatInterface() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<BlobPart[]>([])
   const [isRecognizing, setIsRecognizing] = useState(false)
+  const pathname = usePathname()
 
   const scrollToBottom = (immediate = false, bottom = false) => {
     const doScroll = () => {
@@ -540,6 +542,24 @@ export function ChatInterface() {
     setIsRecording(false)
   }
 
+  // Stop recording if user navigates to another page
+  useEffect(() => {
+    if (isRecording) {
+      try {
+        stopRecording()
+      } catch (e) {}
+    }
+    // we intentionally only watch pathname
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  // Ensure recorder is stopped on unmount
+  useEffect(() => {
+    return () => {
+      try { stopRecording() } catch (e) {}
+    }
+  }, [])
+
   return (
     <Card className="w-full max-w-4xl h-[90vh] md:h-[80vh] flex flex-col border shadow-lg mx-2 md:mx-auto">
       <CardHeader className="border-b p-3 md:p-6">
@@ -628,13 +648,12 @@ export function ChatInterface() {
                 title={isRecording ? 'Остановить запись' : 'Голосовой ввод'}
                 aria-pressed={isRecording}
               >
-                <Mic className="h-5 w-5" />
-                {isRecording && (
-                  <span className="absolute -top-1 -right-1">
-                    <span className="block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" aria-hidden />
-                    <span className="sr-only">Recording</span>
-                  </span>
+                {isRecording ? (
+                  <span className="block w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse" aria-hidden />
+                ) : (
+                  <Mic className="h-5 w-5" />
                 )}
+                {isRecording && <span className="sr-only">Recording</span>}
               </Button>
               <Button
                 type="submit"
