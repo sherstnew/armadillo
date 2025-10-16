@@ -16,6 +16,7 @@ import {
   Trash2,
   MoveDown,
   ArrowDown,
+  Mic,
 } from "lucide-react";
 import { Message } from "@/types/chat";
 import { useTTS } from "@/context/tts-context";
@@ -168,7 +169,7 @@ function ChatMessage({ message }: ChatMessageProps) {
           message.sender === "user" ? "flex-row-reverse" : "flex-row"
         }`}
       >
-        <div className="flex gap-3">
+        <div className={`flex gap-3 w-full justify-start ${message.sender === "user" ? 'flex-row-reverse ' : 'flex-row'}`}>
           {message.sender === "user" ? (
             <div
               className={`flex items-center justify-center h-8 w-8 md:h-10 md:w-10 rounded-full flex-shrink-0 ${
@@ -291,6 +292,10 @@ export function ChatInterface() {
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordedChunksRef = useRef<BlobPart[]>([])
+  const [isRecognizing, setIsRecognizing] = useState(false)
 
   const scrollToBottom = (immediate = false, bottom = false) => {
     const doScroll = () => {
@@ -335,6 +340,10 @@ export function ChatInterface() {
 
   useEffect(() => {
     ensureScrollToBottom();
+  }, []);
+
+  useEffect(() => {
+    ensureScrollToBottom();
   }, [messages]);
 
   useEffect(() => {
@@ -354,6 +363,182 @@ export function ChatInterface() {
       toast.error("Ошибка отправки сообщения");
     }
   };
+
+  const startRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast.error('Recorder not supported in this browser')
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Prefer formats supported by Sber: OPUS in OGG, then webm/opus, then webm
+      const preferredMimes = [
+        'audio/ogg;codecs=opus',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mpeg'
+      ]
+
+      let selectedMime: string | undefined
+      for (const m of preferredMimes) {
+        if ((window as any).MediaRecorder && (window as any).MediaRecorder.isTypeSupported && (window as any).MediaRecorder.isTypeSupported(m)) {
+          selectedMime = m
+          break
+        }
+      }
+
+      const mr = selectedMime ? new MediaRecorder(stream, { mimeType: selectedMime }) : new MediaRecorder(stream)
+      recordedChunksRef.current = []
+
+      mr.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) recordedChunksRef.current.push(ev.data)
+      }
+
+      mr.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: recordedChunksRef.current[0] instanceof Blob ? (recordedChunksRef.current[0] as Blob).type : (selectedMime || 'audio/webm') })
+
+        // Convert recorded blob to PCM16LE raw at 16kHz (Sber supports PCM_S16LE with or without WAV header)
+        try {
+          const arrayBuffer = await blob.arrayBuffer()
+
+          setIsRecognizing(true)
+
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          const decoded = await audioCtx.decodeAudioData(arrayBuffer)
+
+          const targetRate = 16000
+          let resampled = decoded
+          if (Math.abs(decoded.sampleRate - targetRate) > 1) {
+            // resample using OfflineAudioContext
+            const offlineCtx = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(1, Math.ceil(decoded.duration * targetRate), targetRate)
+            // create buffer source
+            const bufferSource = offlineCtx.createBufferSource()
+            // If decoded has multiple channels, downmix to mono by copying first channel into a new mono buffer
+            if (decoded.numberOfChannels > 1) {
+              const mono = offlineCtx.createBuffer(1, decoded.length, decoded.sampleRate)
+              const out = mono.getChannelData(0)
+              const chCount = decoded.numberOfChannels
+              for (let i = 0; i < decoded.length; i++) {
+                let sum = 0
+                for (let c = 0; c < chCount; c++) sum += decoded.getChannelData(c)[i]
+                out[i] = sum / chCount
+              }
+              bufferSource.buffer = mono
+            } else {
+              // single channel
+              const tmp = offlineCtx.createBuffer(1, decoded.length, decoded.sampleRate)
+              tmp.getChannelData(0).set(decoded.getChannelData(0))
+              bufferSource.buffer = tmp
+            }
+
+            bufferSource.connect(offlineCtx.destination)
+            bufferSource.start(0)
+            const rendered = await offlineCtx.startRendering()
+            resampled = rendered
+          } else {
+            // ensure mono
+            if (decoded.numberOfChannels > 1) {
+              // mixdown
+              const tmpCtx = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(1, decoded.length, decoded.sampleRate)
+              const bs = tmpCtx.createBufferSource()
+              const mono = tmpCtx.createBuffer(1, decoded.length, decoded.sampleRate)
+              const out = mono.getChannelData(0)
+              const chCount = decoded.numberOfChannels
+              for (let i = 0; i < decoded.length; i++) {
+                let sum = 0
+                for (let c = 0; c < chCount; c++) sum += decoded.getChannelData(c)[i]
+                out[i] = sum / chCount
+              }
+              bs.buffer = mono
+              bs.connect(tmpCtx.destination)
+              bs.start(0)
+              resampled = await tmpCtx.startRendering()
+            }
+          }
+
+          // encode PCM16LE raw
+          const channelData = resampled.getChannelData(0)
+          const len = channelData.length
+          const bufferOut = new ArrayBuffer(len * 2)
+          const view = new DataView(bufferOut)
+          let offset = 0
+          for (let i = 0; i < len; i++) {
+            let s = Math.max(-1, Math.min(1, channelData[i]))
+            const int16 = s < 0 ? s * 0x8000 : s * 0x7fff
+            view.setInt16(offset, int16, true)
+            offset += 2
+          }
+
+          // send raw PCM16LE with sample rate header in Content-Type
+          const resp = await fetch('/api/tts/recognize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': `audio/x-pcm;bit=16;rate=${targetRate}`,
+            },
+            body: bufferOut
+          })
+
+          setIsRecognizing(false)
+
+          if (!resp.ok) {
+            const txt = await resp.text()
+            console.error('Recognition failed', resp.status, txt)
+            toast.error('Ошибка распознавания')
+            return
+          }
+
+          const data = await resp.json()
+          // If Sber returns format like { result: ["..."] } then join results
+          let transcript = ''
+          try {
+            if (data && typeof data === 'object') {
+              if (Array.isArray(data.result)) {
+                transcript = data.result.filter(Boolean).join(' ')
+              } else if (Array.isArray(data.results) && data.results.every((r: any) => typeof r === 'string')) {
+                transcript = data.results.filter(Boolean).join(' ')
+              } else if (Array.isArray(data.results) && data.results[0]?.alternatives) {
+                transcript = data.results[0].alternatives[0]?.transcript || ''
+              } else if (data.alternatives && Array.isArray(data.alternatives)) {
+                transcript = data.alternatives[0]?.transcript || ''
+              } else if (data.text) {
+                transcript = data.text
+              } else if (data.hypotheses && Array.isArray(data.hypotheses)) {
+                transcript = data.hypotheses[0]?.utterance || ''
+              } else {
+                transcript = ''
+              }
+            }
+          } catch (e) {
+            transcript = ''
+          }
+
+          if (transcript) setInputMessage((prev) => (prev ? prev + ' ' + transcript : transcript))
+        } catch (err) {
+          console.error('Recognition error', err)
+          toast.error('Ошибка распознавания')
+          setIsRecognizing(false)
+        }
+      }
+
+      mediaRecorderRef.current = mr
+      mr.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Recorder error', err)
+      toast.error('Не удалось начать запись')
+    }
+  }
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current
+    if (mr && mr.state !== 'inactive') {
+      mr.stop()
+      // stop tracks
+      try { (mr as any).stream?.getTracks?.().forEach((t: any) => t.stop()) } catch (e) {}
+    }
+    setIsRecording(false)
+  }
 
   return (
     <Card className="w-full max-w-4xl h-[90vh] md:h-[80vh] flex flex-col border shadow-lg mx-2 md:mx-auto">
@@ -432,18 +617,40 @@ export function ChatInterface() {
               className="flex-1 h-10 md:h-12 text-sm md:text-base border-2 focus:border-primary transition-colors"
               disabled={!isConnected || isConnecting}
             />
-            <Button
-              type="submit"
-              size="sm"
-              className="h-10 w-13 md:h-12 px-3 md:px-6 bg-primary hover:bg-primary/90 transition-all duration-200"
-              disabled={!inputMessage.trim() || !isConnected || isConnecting}
-            >
-              {isConnecting ? (
-                <Loader2 className="h-5 w-5 md:h-5 md:w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5 md:h-5 md:w-5" />
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={'outline'}
+                onClick={() => {
+                  if (isRecording) stopRecording(); else startRecording();
+                }}
+                className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center relative"
+                title={isRecording ? 'Остановить запись' : 'Голосовой ввод'}
+                aria-pressed={isRecording}
+              >
+                <Mic className="h-5 w-5" />
+                {isRecording && (
+                  <span className="absolute -top-1 -right-1">
+                    <span className="block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" aria-hidden />
+                    <span className="sr-only">Recording</span>
+                  </span>
+                )}
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-10 w-13 md:h-12 px-3 md:px-6 bg-primary hover:bg-primary/90 transition-all duration-200"
+                disabled={!inputMessage.trim() || !isConnected || isConnecting}
+              >
+                {isRecognizing ? (
+                  <Loader2 className="h-5 w-5 md:h-5 md:w-5 animate-spin" />
+                ) : isConnecting ? (
+                  <Loader2 className="h-5 w-5 md:h-5 md:w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5 md:h-5 md:w-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>

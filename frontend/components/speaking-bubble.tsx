@@ -66,7 +66,6 @@ export default function SpeakingBubble({ roleKey, isPlaying, isLoading, onToggle
       style={{ width: size, height: size }}
       role="button"
     >
-      {/* circular progress ring */}
       <svg
         viewBox="0 0 100 100"
         className="absolute -inset-1"

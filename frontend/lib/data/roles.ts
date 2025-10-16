@@ -10,14 +10,14 @@ export const roles = {
   },
   'retraining': {
     avatar: retrainingAvatar,
-    video: '/videos/student.webm'
+    video: '/videos/retraining.webm'
   },
   'teacher': {
     avatar: teacherAvatar,
-    video: '/videos/student.webm'
+    video: '/videos/teacher.webm'
   },
   'management': {
     avatar: managementAvatar,
-    video: '/videos/student.webm'
+    video: '/videos/management.webm'
   },
 }
