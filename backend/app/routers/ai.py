@@ -129,7 +129,7 @@ async def remove_history(get_current_user: User = Depends(get_current_user)):
     history = await Conversation.find_one(Conversation.user_id == str(get_current_user.id))
     if not history:
         raise Error.HISTORY_NOT_FOUND
-    history.messages = [history.messages[:1]]
+    history.messages = [history.messages[0]]
     await history.save()
         
 @router.get(
