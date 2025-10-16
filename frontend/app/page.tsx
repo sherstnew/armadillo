@@ -6,9 +6,9 @@ import { ChatInterface } from '@/components/chat-interface'
 import { Navigation } from '@/components/navigation'
 
 export default function Home() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <AuthForm />

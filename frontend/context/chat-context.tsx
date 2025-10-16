@@ -53,6 +53,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }))
       
       console.log('✅ Conversation history loaded:', messages.length, 'messages')
+      await connect();
     } catch (error: any) {
       console.log('ℹ️ No conversation history found or error loading:', error.message)
       // Если истории нет - это нормально
@@ -60,29 +61,41 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [token])
 
   // Очистка истории
-  const clearConversation = useCallback(async (): Promise<void> => {
-    if (!token) return
-
-    try {
-      console.log('🗑️ Clearing conversation history...')
-      await apiService.clearConversation(token)
-      
-      // Оставляем только последнее сообщение (как на бэкенде)
-      const lastMessage = chatState.messages[chatState.messages.length - 1]
-      const clearedMessages = lastMessage ? [lastMessage] : []
-      
-      setChatState(prev => ({
+  // Синхронное обновление состояния: оставляем только последнее сообщение
+  const syncClearState = useCallback(() => {
+    setChatState(prev => {
+      const firstMessage = prev.messages[0]
+      const clearedMessages = firstMessage ? [firstMessage] : []
+      return {
         ...prev,
         messages: clearedMessages,
-        hasHistory: false
-      }))
-      
-      console.log('✅ Conversation history cleared')
+        hasHistory: false,
+      }
+    })
+  }, [])
+
+  // Асинхронно очищаем историю на сервере
+  const doRemoteClearConversation = useCallback(async (): Promise<void> => {
+    if (!token) return
+    try {
+      console.log('🗑️ Clearing conversation history (remote)...')
+      await apiService.clearConversation(token)
+      console.log('✅ Conversation history cleared (remote)')
     } catch (error) {
-      console.error('❌ Error clearing conversation:', error)
+      console.error('❌ Error clearing conversation (remote):', error)
+      // Обновляем ошибку в стейте, но не бросаем, чтобы не нарушать синхронные вызовы
+      setChatState(prev => ({ ...prev, error: 'Ошибка очистки истории' }))
       throw error
     }
-  }, [token, chatState.messages])
+  }, [token])
+
+  // Полная очистка с ожиданием удаления на сервере
+  const clearConversation = useCallback(async (): Promise<void> => {
+    // сначала синхронно обновляем UI
+    syncClearState()
+    // затем выполняем удаление на сервере и возвращаем промис для вызывающего
+    await doRemoteClearConversation()
+  }, [syncClearState, doRemoteClearConversation])
 
   const addMessage = useCallback((message: Message) => {
     setChatState(prev => ({
@@ -176,13 +189,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [chatState.isConnected, addMessage, updateMessageStatus])
 
+  // Синхронно очищает локальные сообщения и запускает удаление на сервере в фоне
   const clearMessages = useCallback((): void => {
-    setChatState(prev => ({ 
-      ...prev, 
-      messages: [],
-      hasHistory: false
-    }))
-  }, [])
+    // Обновляем UI немедленно (оставляем только последнее сообщение, как на бэкенде)
+    syncClearState()
+
+    // Запускаем удаление на сервере в фоне — не ждём его в обработчике событий
+    if (token) {
+      doRemoteClearConversation().catch(() => {
+        // Ошибка уже обработана внутри doRemoteClearConversation
+      })
+    }
+  }, [syncClearState, doRemoteClearConversation, token])
 
   const retryConnection = useCallback(async (): Promise<void> => {
     console.log('🔄 Manual reconnection attempt')
@@ -241,29 +259,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       })
     }
   }, [isAuthenticated, token, loadConversation])
-
-  // Приветственное сообщение (только если нет истории)
-  useEffect(() => {
-    if (chatState.messages.length === 0 && user && !chatState.hasHistory) {
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        content: getWelcomeMessage(user.role),
-        sender: 'assistant',
-        timestamp: new Date(),
-      }
-      addMessage(welcomeMessage)
-    }
-  }, [user, chatState.messages.length, chatState.hasHistory, addMessage])
-
-  const getWelcomeMessage = (role: string): string => {
-    const messages = {
-      student: "Привет! Я твой ИИ-ассистент для обучения. Готов помочь с учебными вопросами, материалами и всем, что связано с твоим образованием!",
-      teacher: "Здравствуйте! Я ваш ИИ-ассистент для преподавателей. Помогу с подготовкой материалов, методическими вопросами и организацией учебного процесса.",
-      management: "Добро пожаловать! Я ваш ИИ-ассистент для управленческих задач. Готов помочь с аналитикой, отчетностью и организационными вопросами.",
-      retraining: "Приветствую! Я ваш ИИ-ассистент для переподготовки. Помогу с учебными материалами, практическими заданиями и карьерным развитием."
-    }
-    return messages[role as keyof typeof messages] || "Привет! Я ваш ИИ-ассистент. Чем могу помочь?"
-  }
 
   return (
     <ChatContext.Provider value={{

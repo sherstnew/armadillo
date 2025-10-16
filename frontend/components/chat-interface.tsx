@@ -126,7 +126,7 @@ function ChatMessage({ message }: ChatMessageProps) {
               {message.content}
             </p>
             <div
-              className={`flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 md:gap-2 mt-2 md:mt-3 text-xs ${
+              className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 md:gap-8 mt-2 md:mt-3 text-xs ${
                 message.sender === "user"
                   ? "text-primary-foreground/70"
                   : "text-muted-foreground"

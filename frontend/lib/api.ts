@@ -67,7 +67,7 @@ class ApiService {
   }
 
   async clearConversation(token: string): Promise<void> {
-    return this.request<void>("/ai", {
+    return this.request<void>("/ai/", {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

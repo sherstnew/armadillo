@@ -18,6 +18,7 @@ export interface AuthState {
   user: User | null
   isAuthenticated: boolean
   token: string | null
+  loading: boolean
 }
 
 export interface LoginData {
