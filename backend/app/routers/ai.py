@@ -91,7 +91,7 @@ async def assistant(websocket: WebSocket) -> str:
         if not user.history:
             ai_message = [{
                     "role": "ai",
-                    "content": "Привет, чем могу помочь?"
+                    "content": "Привет! Я твой виртуальный помощник Метроша. Чем могу помочь?"
                 }]
             await save_conversation(str(user.id), ai_message)
         data = await websocket.receive_text()
