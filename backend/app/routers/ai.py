@@ -34,24 +34,24 @@ async def save_conversation(user_id: str, new_messages: List[Dict]):
         user.history.append(conversation)
         await user.save()
             
-async def payloads(payload: str):
+async def payloads(payload: str, age: int, gender: str):
     if payload == "student":
         return Chat(
             messages=[
                 Messages(
                     role=MessagesRole.SYSTEM,
-                    content=prompts.prompts["student"]
+                    content=prompts.prompts["student"]+f"Учитывай возраст:{age} и пол: {gender}"
                 )
             ],
             temperature=0.8,
             max_tokens=10000,
         )
-    if payload == "retraining":
+    if payload == "applicant":
         return Chat(
             messages=[
                 Messages(
                     role=MessagesRole.SYSTEM,
-                    content=prompts.prompts["retraining"]
+                    content=prompts.prompts["applicant"]+f"Учитывай возраст:{age} и пол: {gender}"
                 )
             ],
             temperature=0.4,
@@ -62,7 +62,7 @@ async def payloads(payload: str):
             messages=[
                 Messages(
                     role=MessagesRole.SYSTEM,
-                    content=prompts.prompts["teacher"]
+                    content=prompts.prompts["teacher"]+f"Учитывай возраст:{age} и пол: {gender}"
                 )
             ],
             temperature=0.6,
@@ -73,7 +73,7 @@ async def payloads(payload: str):
             messages=[
                 Messages(
                     role=MessagesRole.SYSTEM,
-                    content=prompts.prompts["management"]
+                    content=prompts.prompts["management"]+f"Учитывай возраст:{age} и пол: {gender}"
                 )
             ],
             temperature=0.2,
@@ -99,7 +99,8 @@ async def assistant(websocket: WebSocket) -> str:
                 "role": "user",
                 "content": data
             }
-        payload = await payloads(str(user.role.value))
+        payload = await payloads(str(user.role.value), user.age, str(user.gender.value))
+        print(payload)
         with GigaChat(credentials=GIGA_KEY, ca_bundle_file=ca_bundle_file, verify_ssl_certs=False) as giga:
             payload.messages.append(Messages(role=MessagesRole.USER, content=data))
             response = giga.chat(payload)
@@ -128,7 +129,7 @@ async def remove_history(get_current_user: User = Depends(get_current_user)):
     history = await Conversation.find_one(Conversation.user_id == str(get_current_user.id))
     if not history:
         raise Error.HISTORY_NOT_FOUND
-    history.messages = [history.messages[-1]]
+    history.messages = [history.messages[:1]]
     await history.save()
         
 @router.get(
